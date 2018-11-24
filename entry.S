@@ -649,7 +649,9 @@ ENTRY(sys_call_table)
 	.long SYMBOL_NAME(sys_ni_syscall)	/* 240 reserved for futex */
 	.long SYMBOL_NAME(sys_sched_setaffinity)
 	.long SYMBOL_NAME(sys_sched_getaffinity)
-	.long SYMBOL_NAME(sys_is_changeable) /* 234 */
+
+	.long SYMBOL_NAME(sys_is_changeable) /* 243 */
+	.long SYMBOL_NAME(sys_make_changeable) /* 244 */
 
 	.rept NR_syscalls-(.-sys_call_table)/4
 		.long SYMBOL_NAME(sys_ni_syscall)

@@ -7,7 +7,6 @@
 #include<linux/slab.h>
 #include<asm/uaccess.h>
 
-
 int sys_is_changeable(pid_t pid){
     struct task_struct* info = find_task_by_pid(pid);
 
@@ -16,6 +15,26 @@ int sys_is_changeable(pid_t pid){
     }
 
     return info->is_changeable;
+}
+
+/**
+ * Make a given process CHANGEABLE
+ * @param pid The process ID of the given process
+ * @return 0 for success, otherwise returns -errno with a given error code
+ */
+int make_changeable(pid_t pid){
+    struct task_struct* info = find_task_by_pid(pid);
+
+    if(info == NULL) {
+        return -ESRCH;
+    }
+
+    if(info->is_changeable) {
+        return -EINVAL;
+    }
+
+    info->is_changeable = 1;
+    return 0;
 }
 
 /**

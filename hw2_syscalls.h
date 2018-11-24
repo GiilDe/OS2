@@ -10,7 +10,7 @@
 #include <errno.h>
 
 #define SYSCALL_IS_CHANGEABLE 243
-#define SYSCALL_DISABLE_POLICY 244
+#define SYSCALL_MAKE_CHANGEABLE 244
 #define SYSCALL_SET_PROCESS_CAPABILITIES 245
 #define SYSCALL_GET_PROCESS_LOG 246
 
@@ -41,12 +41,12 @@ int is_changeable(pid_t pid){
     return handle_res_code(res);
 }
 
-int disable_policy(pid_t pid, int password){
+int make_changeable(pid_t pid){
     int res;
     __asm__(
         "int $0x80;"
         : "=a" (res)
-        : "0" (SYSCALL_DISABLE_POLICY), "b" (pid), "c" (password)
+        : "0" (SYSCALL_DISABLE_POLICY), "b" (pid)
         : "memory"
         );
     return handle_res_code(res);
