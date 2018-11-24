@@ -78,6 +78,7 @@ extern int nr_threads;
 extern int last_pid;
 extern unsigned long nr_running(void);
 extern unsigned long nr_uninterruptible(void);
+extern int is_changeable_enabled;
 
 #include <linux/fs.h>
 #include <linux/time.h>
@@ -452,6 +453,7 @@ struct task_struct {
 
 /* journalling filesystem info */
 	void *journal_info;
+/* hw2 info */
 	int is_changeable;
 };
 

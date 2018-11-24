@@ -7,6 +7,8 @@
 #include<linux/slab.h>
 #include<asm/uaccess.h>
 
+
+
 int sys_is_changeable(pid_t pid){
     struct task_struct* info = find_task_by_pid(pid);
 
@@ -38,8 +40,10 @@ int sys_make_changeable(pid_t pid){
 }
 
 int sys_change(int val){
-
-    // TODO Implement
+    if(val != 1 && val != 0){
+        return -EINVAL;
+    }
+    is_changeable_enabled = val;
     return 0;
 }
 
@@ -49,6 +53,11 @@ int sys_change(int val){
  * @return 0 for success, otherwise returns -errno with a given error code
  */
 int sys_get_policy(pid_t pid){
-    // TODO Implement
-    return 0;
+    struct task_struct* target_p = find_task_by_pid(pid);
+
+    if(target_p == NULL) {
+        return -ESRCH;
+    }
+
+    return target_p->is_changeable && is_changeable_enabled;
 }

@@ -118,6 +118,8 @@
 
 #define BITMAP_SIZE ((((MAX_PRIO+1+7)/8)+sizeof(long)-1)/sizeof(long))
 
+int is_changeable_enabled;
+
 typedef struct runqueue runqueue_t;
 
 struct prio_array {
