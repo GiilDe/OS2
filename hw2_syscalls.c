@@ -38,6 +38,14 @@ int sys_make_changeable(pid_t pid){
     target_p->policy = SCHED_CHANGEABLE;
     target_p->is_changeable = 1;
 
+    runqueue_t *rq = this_rq();
+    spin_lock_irq(rq);
+
+    list_t current = rq->changeables.queue[0];
+    list_add_tail(&p->run_list, &current);
+
+    spin_unlock_irq(rq);
+
     return 0;
 }
 
