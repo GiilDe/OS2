@@ -141,6 +141,7 @@ struct runqueue {
 	signed long nr_uninterruptible;
 	task_t *curr, *idle;
 	prio_array_t *active, *expired, arrays[2];
+	prio_array_t changeables;
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
 	list_t migration_queue;
@@ -796,11 +797,32 @@ out:
 
 void scheduling_functions_start_here(void) { }
 
+
+pid_t get_min_changeable(){
+	pid_t min_pid = -1;
+	runqueue_t *rq = this_rq();
+	list_t current = rq->changeables.queue[0];
+	while(current != null){
+		task_t* curr = list_entry(current, task_t, run_list);
+		pid_t pid = curr->pid;
+		if(min_pid == -1){
+			min_pid = pid;
+			continue;
+		}
+		if(pid < min_pid){
+			min_pid = pid;
+		}
+		current = current->next;
+	}
+	return min_pid;
+}
+
 /*
  * 'schedule()' is the main scheduler function.
  */
 asmlinkage void schedule(void)
 {
+start:
 	task_t *prev, *next;
 	runqueue_t *rq;
 	prio_array_t *array;
@@ -858,6 +880,17 @@ pick_next_task:
 	idx = sched_find_first_bit(array->bitmap);
 	queue = array->queue + idx;
 	next = list_entry(queue->next, task_t, run_list);
+
+	//TODO
+	if(next->is_changeable && is_changeable_enabled){
+		int min = get_min_changeable();
+		if(next->pid != min){
+			enqueue_task(next, rq->expired);
+			dequeue_task(next, rq->active);
+			goto start;
+		}
+	}
+
 
 switch_tasks:
 	prefetch(next);
@@ -1373,6 +1406,9 @@ out_unlock:
 
 asmlinkage long sys_sched_yield(void)
 {
+	if(current->is_changeable && is_changeable_enabled){
+		return 0;
+	}
 	runqueue_t *rq = this_rq_lock();
 	prio_array_t *array = current->array;
 	int i;
