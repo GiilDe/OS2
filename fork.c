@@ -23,6 +23,7 @@
 #include <linux/personality.h>
 #include <linux/compiler.h>
 #include <linux/mman.h>
+#include <linux/sched.h>
 
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>
@@ -794,10 +795,20 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		 * COW overhead when the child exec()s afterwards.
 		 */
 		// TODO Test
-		if(!current->is_changeable) {
+		if(!current->is_changeable || !is_changeable_enabled) {
 			current->need_resched = 1;
 		}
 	}
+
+//	if(current->is_changeable) {
+//		runqueue_t *rq = this_rq();
+//		spin_lock_irq(rq);
+//
+//		list_t current = rq->changeables.queue[0];
+//		list_add_tail(&p->run_list, &current);
+//
+//		spin_unlock_irq(rq);
+//	}
 
 fork_out:
 	return retval;

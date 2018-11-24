@@ -7,6 +7,19 @@
 #include<linux/slab.h>
 #include<asm/uaccess.h>
 
+//typedef struct runqueue runqueue_t;
+//
+//struct runqueue {
+//    spinlock_t lock;
+//    unsigned long nr_running, nr_switches, expired_timestamp;
+//    signed long nr_uninterruptible;
+//    task_t *curr, *idle;
+//    prio_array_t *active, *expired, arrays[2];
+//    prio_array_t changeables;
+//    int prev_nr_running[NR_CPUS];
+//    task_t *migration_thread;
+//    list_t migration_queue;
+//} ____cacheline_aligned;
 
 
 int sys_is_changeable(pid_t pid){
@@ -38,13 +51,13 @@ int sys_make_changeable(pid_t pid){
     target_p->policy = SCHED_CHANGEABLE;
     target_p->is_changeable = 1;
 
-    runqueue_t *rq = this_rq();
-    spin_lock_irq(rq);
-
-    list_t current = rq->changeables.queue[0];
-    list_add_tail(&p->run_list, &current);
-
-    spin_unlock_irq(rq);
+//    runqueue_t *rq = this_rq();
+//    spin_lock_irq(rq);
+//
+//    list_t current_changeable = rq->changeables.queue[0];
+//    list_add_tail(&target_p->run_list, &current_changeable);
+//
+//    spin_unlock_irq(rq);
 
     return 0;
 }

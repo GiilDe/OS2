@@ -165,6 +165,26 @@ static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
 # define finish_arch_switch(rq)		spin_unlock_irq(&(rq)->lock)
 #endif
 
+// TODO Our function
+pid_t get_min_changeable() {
+	pid_t min_pid = -1;
+	runqueue_t *rq = this_rq();
+	list_t current_changeable = rq->changeables.queue[0];
+	list_t *pos;
+	list_for_each(pos, &current_changeable) {
+		task_t *curr = list_entry(pos, task_t, run_list);
+		pid_t pid = curr->pid;
+		if (min_pid == -1) {
+			min_pid = pid;
+			continue;
+		}
+		if (pid < min_pid) {
+			min_pid = pid;
+		}
+	}
+	return min_pid;
+}
+
 /*
  * task_rq_lock - lock the runqueue a given task resides on and disable
  * interrupts.  Note the ordering: we can safely lookup the task_rq without
@@ -807,31 +827,11 @@ out:
 
 void scheduling_functions_start_here(void) { }
 
-pid_t get_min_changeable() {
-	pid_t min_pid = -1;
-	runqueue_t *rq = this_rq();
-	list_t current = rq->changeables.queue[0];
-	while(current != null){
-		task_t* curr = list_entry(current, task_t, run_list);
-		pid_t pid = curr->pid;
-		if(min_pid == -1){
-			min_pid = pid;
-			continue;
-		}
-		if(pid < min_pid){
-			min_pid = pid;
-		}
-		current = current->next;
-	}
-	return min_pid;
-}
-
 /*
  * 'schedule()' is the main scheduler function.
  */
-asmlinkage void schedule(void)
-{
-start:
+asmlinkage void schedule(void) {
+
 	task_t *prev, *next;
 	runqueue_t *rq;
 	prio_array_t *array;
@@ -896,7 +896,7 @@ pick_next_task:
 		if(next->pid != min){
 			enqueue_task(next, rq->expired);
 			dequeue_task(next, rq->active);
-			goto start;
+			goto need_resched;
 		}
 	}
 
