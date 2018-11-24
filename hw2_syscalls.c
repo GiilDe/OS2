@@ -22,7 +22,7 @@ int sys_is_changeable(pid_t pid){
  * @param pid The process ID of the given process
  * @return 0 for success, otherwise returns -errno with a given error code
  */
-int make_changeable(pid_t pid){
+int sys_make_changeable(pid_t pid){
     struct task_struct* target_p = find_task_by_pid(pid);
 
     if(target_p == NULL) {
