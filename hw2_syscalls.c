@@ -7,50 +7,15 @@
 #include<linux/slab.h>
 #include<asm/uaccess.h>
 
-#define PASSWORD 234123
 
-/**
- * Enable policy enforcement for a given process (Disabled by default)
- * @param pid The process ID of the given process
- * @param size Maximum number of forbidden activity logs for the process
- * @param password Administrator password
- * @return 0 for success, otherwise returns -errno with a given error code
- */
-int sys_enable_policy(pid_t pid, int size, int password){
-    if(pid < 0) {
-        return -ESRCH;
-    }
-
+int sys_is_changeable(pid_t pid){
     struct task_struct* info = find_task_by_pid(pid);
 
     if(info == NULL) {
         return -ESRCH;
     }
 
-    if(password != PASSWORD) {
-        return -EINVAL;
-    }
-
-    if(info->policy_enabled == 1){
-        return -EINVAL;
-    }
-
-    if(size < 0) {
-        return -EINVAL;
-    }
-
-    info->policy_enabled = 1;
-    info->privilege = PRIVILEGE_DEFAULT;
-    info->log_array = kmalloc(sizeof(struct forbidden_activity_info)*size, GFP_KERNEL);
-    info->num_logs = 0;
-
-    if(info->log_array == NULL) {
-        return -ENOMEM;
-    }
-
-    printk("Enabling policy for process %d\n", pid);
-    info->log_array_size = size;
-    return 0;
+    return info->is_changeable;
 }
 
 /**
