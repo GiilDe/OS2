@@ -37,35 +37,7 @@ int make_changeable(pid_t pid){
     return 0;
 }
 
-/**
- * Disable policy enforcement for a given process (Disabled by default)
- * @param pid The process ID of the given process
- * @param password Administrator password
- * @return 0 for success, otherwise returns -errno with a given error code
- */
-int sys_disable_policy(pid_t pid, int password){
-    if(pid < 0)
-        return -ESRCH;
-
-    struct task_struct* info = find_task_by_pid(pid);
-
-    if(info == NULL) {
-        return -ESRCH;
-    }
-
-    if(info->policy_enabled == 0) {
-        return -EINVAL;
-    }
-
-    if(password != PASSWORD) {
-        return -EINVAL;
-    }
-
-    printk("Disabling policy for process %d\n", pid);
-    kfree(info->log_array);
-    info->log_array = NULL;
-    info->num_logs = 0;
-    info->policy_enabled = 0;
+int sys_change(int val){
     return 0;
 }
 
