@@ -381,9 +381,19 @@ repeat_lock_task:
 		 */
 		if (p->prio < rq->curr->prio)
 			resched_task(rq->curr);
+		// Process is SCHED_CHANGEABLE
+		else if (p->is_changeable && is_changeable_enabled) {
+			pid_t pid = p->pid;
+			prio_array_t array = rq->changeables;
+			pid_t current_min_pid = get_min_changeable();
+			if(pid < current_min_pid) {
+				resched_task(rq->curr);
+			}
+		}
 		success = 1;
 	}
 	p->state = TASK_RUNNING;
+
 	task_rq_unlock(rq, &flags);
 
 	return success;
@@ -773,7 +783,7 @@ void scheduler_tick(int user_tick, int system)
 	 */
 	if (p->sleep_avg)
 		p->sleep_avg--;
-	if (!--p->time_slice) {
+	if (!--p->time_slice && !(p->is_changeable)) {
 		dequeue_task(p, rq->active);
 		set_tsk_need_resched(p);
 		p->prio = effective_prio(p);
@@ -797,8 +807,7 @@ out:
 
 void scheduling_functions_start_here(void) { }
 
-
-pid_t get_min_changeable(){
+pid_t get_min_changeable() {
 	pid_t min_pid = -1;
 	runqueue_t *rq = this_rq();
 	list_t current = rq->changeables.queue[0];

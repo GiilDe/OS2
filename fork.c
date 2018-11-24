@@ -725,9 +725,19 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	__cli();
 	if (!current->time_slice)
 		BUG();
-	p->time_slice = (current->time_slice + 1) >> 1;
-	p->first_time_slice = 1;
-	current->time_slice >>= 1;
+
+	// TODO Check if this holds water or @Miki Mints is just stupid
+	if(p->is_changeable) {
+		int cur_ts = current->time_slice;
+		p->time_slice = cur_ts >> 1;
+		p->first_time_slice = 1;
+		current->time_slice >>= (cur_ts + 1) >> 1;
+	} else {
+		p->time_slice = (current->time_slice + 1) >> 1;
+		p->first_time_slice = 1;
+		current->time_slice >>= 1;
+	}
+
 	p->sleep_timestamp = jiffies;
 	if (!current->time_slice) {
 		/*
@@ -778,12 +788,16 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	++total_forks;
 	if (clone_flags & CLONE_VFORK)
 		wait_for_completion(&vfork);
-	else
+	else {
 		/*
 		 * Let the child process run first, to avoid most of the
 		 * COW overhead when the child exec()s afterwards.
 		 */
-		current->need_resched = 1;
+		// TODO Test
+		if(!current->is_changeable) {
+			current->need_resched = 1;
+		}
+	}
 
 fork_out:
 	return retval;

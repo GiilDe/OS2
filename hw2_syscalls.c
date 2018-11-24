@@ -35,7 +35,9 @@ int sys_make_changeable(pid_t pid){
         return -EINVAL;
     }
 
+    target_p->policy = SCHED_CHANGEABLE;
     target_p->is_changeable = 1;
+
     return 0;
 }
 

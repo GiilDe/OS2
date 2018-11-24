@@ -653,7 +653,6 @@ ENTRY(sys_call_table)
 	.long SYMBOL_NAME(sys_is_changeable) /* 243 */
 	.long SYMBOL_NAME(sys_make_changeable) /* 244 */
 	.long SYMBOL_NAME(sys_change) /* 245 */
-
 	.long SYMBOL_NAME(sys_get_policy) /* 246 */
 
 	.rept NR_syscalls-(.-sys_call_table)/4
