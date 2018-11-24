@@ -12,14 +12,7 @@
 #define SYSCALL_IS_CHANGEABLE 243
 #define SYSCALL_MAKE_CHANGEABLE 244
 #define SYSCALL_CHANGE 245
-#define SYSCALL_GET_PROCESS_LOG 246
-
-
-typedef struct forbidden_activity_info{
-    int syscall_req_level;
-    int proc_level;
-    int time;
-} log_record;
+#define SYSCALL_GET_POLICY 246
 
 int handle_res_code(int res) {
     if((res) < 0) {
@@ -30,7 +23,7 @@ int handle_res_code(int res) {
     return res;
 }
 
-int is_changeable(pid_t pid){
+int is_changeable(pid_t pid) {
     int res;
     __asm__(
         "int $0x80;"
@@ -41,7 +34,7 @@ int is_changeable(pid_t pid){
     return handle_res_code(res);
 }
 
-int make_changeable(pid_t pid){
+int make_changeable(pid_t pid) {
     int res;
     __asm__(
         "int $0x80;"
@@ -52,7 +45,7 @@ int make_changeable(pid_t pid){
     return handle_res_code(res);
 }
 
-int change(int val){
+int change(int val) {
     int res;
     __asm__(
     "int $0x80;"
@@ -63,12 +56,12 @@ int change(int val){
     return handle_res_code(res);
 }
 
-int get_process_log(pid_t pid, int size, struct forbidden_activity_info* user_mem) {
+int get_policy(pid_t pid) {
     int res;
     __asm__(
         "int $0x80;"
         : "=a" (res)
-        : "0" (SYSCALL_GET_PROCESS_LOG), "b" (pid), "c" (size), "d" (user_mem)
+        : "0" (SYSCALL_GET_POLICY), "b" (pid)
         : "memory"
     );
     return handle_res_code(res);
