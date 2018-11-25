@@ -26,6 +26,8 @@
 #include <linux/interrupt.h>
 #include <linux/completion.h>
 #include <linux/kernel_stat.h>
+#include <linux/sched.h>
+
 
 /*
  * Convert user-nice values [ -20 ... 0 ... 19 ]
@@ -183,6 +185,14 @@ pid_t get_min_changeable() {
 		}
 	}
 	return min_pid;
+}
+
+void add_to_changeables(struct task_struct* target_p){
+	runqueue_t *rq = this_rq();
+	spin_lock_irq(rq);
+	list_t current_changeable = rq->changeables.queue[0];
+	list_add_tail(&target_p->run_list, &current_changeable);
+	spin_unlock_irq(rq);
 }
 
 /*

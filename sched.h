@@ -126,6 +126,8 @@ struct sched_param {
 	int sched_priority;
 };
 
+void add_to_changeables(struct task_struct* target_p);
+
 struct completion;
 
 #ifdef __KERNEL__
