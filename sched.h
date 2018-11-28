@@ -470,8 +470,6 @@ struct task_struct {
 
 /* journalling filesystem info */
 	void *journal_info;
-/* hw2 info */
-	int is_changeable;
 };
 
 /*
