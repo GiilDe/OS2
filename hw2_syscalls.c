@@ -62,5 +62,9 @@ int sys_get_policy(pid_t pid){
         return -ESRCH;
     }
 
+    if(target_p->policy != SCHED_CHANGEABLE) {
+        return -EINVAL;
+    }
+
     return is_changeable(target_p);
 }

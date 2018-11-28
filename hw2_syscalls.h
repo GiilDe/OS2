@@ -39,7 +39,7 @@ int make_changeable(pid_t pid) {
     __asm__(
         "int $0x80;"
         : "=a" (res)
-        : "0" (SYSCALL_DISABLE_POLICY), "b" (pid)
+        : "0" (SYSCALL_MAKE_CHANGEABLE), "b" (pid)
         : "memory"
         );
     return handle_res_code(res);
