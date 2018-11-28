@@ -171,14 +171,13 @@ static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
 pid_t get_min_changeable() {
 	pid_t min_pid = -1;
 	runqueue_t *rq = this_rq();
-	list_t current_changeable = rq->changeables.queue[0];
+	list_t* current_changeable = rq->changeables.queue;
 	list_t *pos;
-	list_for_each(pos, &current_changeable) {
+	list_for_each(pos, current_changeable){
 		task_t *curr = list_entry(pos, task_t, run_list);
 		pid_t pid = curr->pid;
 		if (min_pid == -1) {
 			min_pid = pid;
-			continue;
 		}
 		if (pid < min_pid) {
 			min_pid = pid;
@@ -258,6 +257,26 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 	array->nr_active++;
 	p->array = array;
 }
+
+static inline void enqueue_changeable(struct task_struct *p, prio_array_t *array)
+{
+	list_add_tail(&p->run_list, array->queue);
+	array->nr_active++;
+}
+
+static inline void dequeue_changeable(struct task_struct *p, prio_array_t *array)
+{
+	array->nr_active--;
+	list_del(&p->run_list);
+	if (list_empty(array->queue))
+		__clear_bit(p->prio, array->bitmap);
+}
+
+int is_changeables_empty(){
+	runqueue_t r = this_rq();
+	return r->changeables.nr_active == 0;
+}
+
 
 static inline int effective_prio(task_t *p)
 {
@@ -414,13 +433,16 @@ repeat_lock_task:
 		// Process is SCHED_CHANGEABLE
 		else if (p->is_changeable && is_changeable_enabled) {
 			pid_t pid = p->pid;
-			prio_array_t array = rq->changeables;
-			pid_t current_min_pid = get_min_changeable();
+            prio_array_t array = rq->changeables;
+            pid_t current_min_pid = get_min_changeable();
 			if(pid < current_min_pid) {
 				resched_task(rq->curr);
 			}
 		}
-		success = 1;
+        if(p->policy == SCHED_CHANGEABLE){
+			enqueue_changeable(p);
+        }
+            success = 1;
 	}
 	p->state = TASK_RUNNING;
 
@@ -895,7 +917,7 @@ pick_next_task:
 		array = rq->active;
 		rq->expired_timestamp = 0;
 	}
-
+	//TODO
 	idx = sched_find_first_bit(array->bitmap);
 	queue = array->queue + idx;
 	next = list_entry(queue->next, task_t, run_list);
