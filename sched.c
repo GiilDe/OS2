@@ -264,18 +264,20 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 	p->array = array;
 }
 
-static inline void enqueue_changeable(struct task_struct *p, prio_array_t *array)
+void enqueue_changeable(struct task_struct *p)
 {
-	list_add_tail(&p->run_list, array->queue);
-	array->nr_active++;
+	runqueue_t * rq = this_rq();
+	prio_array_t array = rq->changeables;
+	list_add_tail(&p->run_list, array.queue);
+	array.nr_active++;
 }
 
-static inline void dequeue_changeable(struct task_struct *p, prio_array_t *array)
+void dequeue_changeable(struct task_struct *p)
 {
-	array->nr_active--;
+	runqueue_t * rq = this_rq();
+	prio_array_t array = rq->changeables;
+	array.nr_active--;
 	list_del(&p->run_list);
-	if (list_empty(array->queue))
-		__clear_bit(p->prio, array->bitmap);
 }
 
 int is_changeables_empty(){

@@ -126,23 +126,6 @@ struct sched_param {
 	int sched_priority;
 };
 
-/**
- * Add a CHANGEABLE process to the list of SC processes
- * @param target_p The PCB of the given process
- */
-void add_to_changeables(struct task_struct* target_p);
-int is_changeables_empty();
-void enqueue_changeable(struct task_struct *p, prio_array_t *array);
-void dequeue_changeable(struct task_struct *p, prio_array_t *array);
-
-
-/**
- * Check if a given process should behave as an SC process (CHANGEABLE)
- * @param target_p
- * @return 1 if the process should behave as SC, 0 if it should behave as SO
- */
-int is_changeable(struct task_struct* target_p);
-
 struct completion;
 
 #ifdef __KERNEL__
@@ -1017,6 +1000,23 @@ static inline int need_resched(void)
 {
 	return unlikely(current->need_resched);
 }
+
+/**
+ * Add a CHANGEABLE process to the list of SC processes
+ * @param target_p The PCB of the given process
+ */
+void add_to_changeables(struct task_struct* target_p);
+int is_changeables_empty();
+void enqueue_changeable(struct task_struct *p);
+void dequeue_changeable(struct task_struct *p);
+
+
+/**
+ * Check if a given process should behave as an SC process (CHANGEABLE)
+ * @param target_p
+ * @return 1 if the process should behave as SC, 0 if it should behave as SO
+ */
+int is_changeable(struct task_struct* target_p);
 
 #endif /* __KERNEL__ */
 
