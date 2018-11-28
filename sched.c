@@ -279,7 +279,7 @@ static inline void dequeue_changeable(struct task_struct *p, prio_array_t *array
 }
 
 int is_changeables_empty(){
-	runqueue_t r = this_rq();
+	runqueue_t* r = this_rq();
 	return r->changeables.nr_active == 0;
 }
 

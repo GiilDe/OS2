@@ -131,6 +131,10 @@ struct sched_param {
  * @param target_p The PCB of the given process
  */
 void add_to_changeables(struct task_struct* target_p);
+int is_changeables_empty();
+void enqueue_changeable(struct task_struct *p, prio_array_t *array);
+void dequeue_changeable(struct task_struct *p, prio_array_t *array);
+
 
 /**
  * Check if a given process should behave as an SC process (CHANGEABLE)
