@@ -727,17 +727,9 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	if (!current->time_slice)
 		BUG();
 
-	// TODO Check if this holds water or @Miki Mints is just stupid
-	if(p->is_changeable) {
-		int cur_ts = current->time_slice;
-		p->time_slice = cur_ts >> 1;
-		p->first_time_slice = 1;
-		current->time_slice >>= (cur_ts + 1) >> 1;
-	} else {
-		p->time_slice = (current->time_slice + 1) >> 1;
-		p->first_time_slice = 1;
-		current->time_slice >>= 1;
-	}
+	p->time_slice = (current->time_slice + 1) >> 1;
+	p->first_time_slice = 1;
+	current->time_slice >>= 1;
 
 	p->sleep_timestamp = jiffies;
 	if (!current->time_slice) {
@@ -793,9 +785,11 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		/*
 		 * Let the child process run first, to avoid most of the
 		 * COW overhead when the child exec()s afterwards.
+		 *
+		 * @Miki: But allow a CHANGEABLE process to run before his child,
+		 * i.e don't flag him for rescheduling (Only when the regime is enabled)
 		 */
-		// TODO Test
-		if(!current->is_changeable || !is_changeable_enabled) {
+		if(!is_changeable(current)) {
 			current->need_resched = 1;
 		}
 	}

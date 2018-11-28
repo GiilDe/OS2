@@ -171,13 +171,14 @@ static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
 pid_t get_min_changeable() {
 	pid_t min_pid = -1;
 	runqueue_t *rq = this_rq();
-	list_t* current_changeable = rq->changeables.queue;
+	list_t current_changeable = rq->changeables.queue[0];
 	list_t *pos;
-	list_for_each(pos, current_changeable){
+	list_for_each(pos, &current_changeable) {
 		task_t *curr = list_entry(pos, task_t, run_list);
 		pid_t pid = curr->pid;
 		if (min_pid == -1) {
 			min_pid = pid;
+			continue;
 		}
 		if (pid < min_pid) {
 			min_pid = pid;
@@ -186,12 +187,17 @@ pid_t get_min_changeable() {
 	return min_pid;
 }
 
-void add_to_changeables(struct task_struct* target_p){
+void add_to_changeables(struct task_struct* target_p) {
 	runqueue_t *rq = this_rq();
 	spin_lock_irq(rq);
 	list_t current_changeable = rq->changeables.queue[0];
 	list_add_tail(&target_p->run_list, &current_changeable);
 	spin_unlock_irq(rq);
+}
+
+int is_changeable(struct task_struct* target_p) {
+	return target_p->policy == SCHED_CHANGEABLE
+		   && is_changeable_enabled; // This is a global variable
 }
 
 /*
@@ -425,24 +431,25 @@ repeat_lock_task:
 		if (old_state == TASK_UNINTERRUPTIBLE)
 			rq->nr_uninterruptible--;
 		activate_task(p, rq);
+
 		/*
 		 * If sync is set, a resched_task() is a NOOP
 		 */
-		if (p->prio < rq->curr->prio)
+		if (!is_changeable(p) && p->prio < rq->curr->prio) {
+			// An OTHER process returns from waiting and has lower PID
 			resched_task(rq->curr);
-		// Process is SCHED_CHANGEABLE
-		else if (p->is_changeable && is_changeable_enabled) {
+		} else if (is_changeable(p) && is_changeable(rq->curr)) {
+			// Process is SC
 			pid_t pid = p->pid;
-            prio_array_t array = rq->changeables;
-            pid_t current_min_pid = get_min_changeable();
-			if(pid < current_min_pid) {
+			if(pid < rq->curr->pid) {
+				// Another SC process woke up and has a lower PID
 				resched_task(rq->curr);
 			}
 		}
         if(p->policy == SCHED_CHANGEABLE){
 			enqueue_changeable(p);
         }
-            success = 1;
+        success = 1;
 	}
 	p->state = TASK_RUNNING;
 
@@ -835,7 +842,8 @@ void scheduler_tick(int user_tick, int system)
 	 */
 	if (p->sleep_avg)
 		p->sleep_avg--;
-	if (!--p->time_slice && !(p->is_changeable)) {
+	// CHANGEABLE Processes do
+	if (!--p->time_slice && !is_changeable(p)) {
 		dequeue_task(p, rq->active);
 		set_tsk_need_resched(p);
 		p->prio = effective_prio(p);
@@ -922,10 +930,10 @@ pick_next_task:
 	queue = array->queue + idx;
 	next = list_entry(queue->next, task_t, run_list);
 
-	//TODO
-	if(next->is_changeable && is_changeable_enabled){
-		int min = get_min_changeable();
-		if(next->pid != min){
+	// TODO
+	if(is_changeable(next)) {
+		int min_sc_pid = get_min_changeable();
+		if(next->pid != min_sc_pid){
 			enqueue_task(next, rq->expired);
 			dequeue_task(next, rq->active);
 			goto need_resched;
@@ -1447,9 +1455,11 @@ out_unlock:
 
 asmlinkage long sys_sched_yield(void)
 {
-	if(current->is_changeable && is_changeable_enabled){
+	if(is_changeable(current)){
+		// CHANGEABLE
 		return 0;
 	}
+
 	runqueue_t *rq = this_rq_lock();
 	prio_array_t *array = current->array;
 	int i;

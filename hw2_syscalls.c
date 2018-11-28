@@ -17,7 +17,7 @@ int sys_is_changeable(pid_t pid){
         return -ESRCH;
     }
 
-    return info->is_changeable;
+    return info->policy == SCHED_CHANGEABLE;
 }
 
 /**
@@ -32,12 +32,11 @@ int sys_make_changeable(pid_t pid){
         return -ESRCH;
     }
 
-    if(current->is_changeable || target_p->is_changeable) {
+    if(current->policy == SCHED_CHANGEABLE || target_p->policy == SCHED_CHANGEABLE) {
         return -EINVAL;
     }
 
     target_p->policy = SCHED_CHANGEABLE;
-    target_p->is_changeable = 1;
 
     add_to_changeables(target_p);
     return 0;
@@ -63,5 +62,5 @@ int sys_get_policy(pid_t pid){
         return -ESRCH;
     }
 
-    return target_p->is_changeable && is_changeable_enabled;
+    return is_changeable(target_p);
 }
