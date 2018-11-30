@@ -569,9 +569,6 @@ asmlinkage long sys_exit(int error_code)
 
 asmlinkage long sys_wait4(pid_t pid,unsigned int * stat_addr, int options, struct rusage * ru)
 {
-	if(current->policy == SCHED_CHANGEABLE){
-		dequeue_changeable(current);
-	}
 	int flag, retval;
 	DECLARE_WAITQUEUE(wait, current);
 	struct task_struct *tsk;

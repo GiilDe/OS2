@@ -175,14 +175,16 @@ pid_t get_min_changeable() {
 	list_t *pos;
 	list_for_each(pos, &current_changeable) {
 		task_t *curr = list_entry(pos, task_t, run_list);
-		pid_t pid = curr->pid;
-		if (min_pid == -1) {
-			min_pid = pid;
-			continue;
-		}
-		if (pid < min_pid) {
-			min_pid = pid;
-		}
+        if(curr->state != TASK_RUNNING){
+            pid_t pid = curr->pid;
+            if (min_pid == -1) {
+                min_pid = pid;
+                continue;
+            }
+            if (pid < min_pid) {
+                min_pid = pid;
+            }
+        }
 	}
 	return min_pid;
 }
