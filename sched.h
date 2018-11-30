@@ -78,7 +78,7 @@ extern int nr_threads;
 extern int last_pid;
 extern unsigned long nr_running(void);
 extern unsigned long nr_uninterruptible(void);
-extern int is_changeable_enabled = 0;
+extern int is_changeable_enabled;
 
 #include <linux/fs.h>
 #include <linux/time.h>

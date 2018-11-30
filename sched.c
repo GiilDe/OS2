@@ -120,7 +120,7 @@
 
 #define BITMAP_SIZE ((((MAX_PRIO+1+7)/8)+sizeof(long)-1)/sizeof(long))
 
-int is_changeable_enabled;
+int is_changeable_enabled = 0;
 
 typedef struct runqueue runqueue_t;
 
@@ -171,20 +171,18 @@ static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
 pid_t get_min_changeable() {
 	pid_t min_pid = -1;
 	runqueue_t *rq = this_rq();
+    printk("first get_min_changeable\n");
     spin_lock_irq(rq);
 	list_t *pos;
+    task_t *cur;
 	list_for_each(pos, rq->changeables.queue){
-		task_t *curr = list_entry(pos, task_t, changeable_list);
-        if(curr->state == TASK_RUNNING){
-            pid_t pid = curr->pid;
-            if (min_pid == -1) {
-                min_pid = pid;
-            }
-            if (pid < min_pid) {
-                min_pid = pid;
-            }
+        cur = list_entry(pos, task_t, changeable_list);
+        printk("first get_min_changeable2\n");
+        if((cur->state == TASK_RUNNING && cur->pid < min_pid) || min_pid == -1){
+            min_pid = cur->pid;
         }
 	}
+    printk("the minimum pid: %d", min_pid);
     spin_unlock_irq(rq);
 	return min_pid;
 }
@@ -261,7 +259,7 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 
 void enqueue_changeable(struct task_struct *p)
 {
-    printk("enqueue_changeable");
+    printk("inside enqueue_changeable\n");
 	runqueue_t * rq = this_rq();
     spin_lock_irq(rq);
 	list_add_tail(&p->changeable_list, rq->changeables.queue);
@@ -270,23 +268,22 @@ void enqueue_changeable(struct task_struct *p)
 }
 
 int is_changeables_empty(){
-    runqueue_t* r = this_rq();
+    runqueue_t* rq = this_rq();
     spin_lock_irq(rq);
-    int x = r->changeables.nr_active;
+    int x = rq->changeables.nr_active;
     spin_unlock_irq(rq);
     return x == 0;
 }
 
 void dequeue_changeable(struct task_struct *p)
 {
-    printk("dequeue_changeable");
 	runqueue_t * rq = this_rq();
     spin_lock_irq(rq);
     rq->changeables.nr_active--;
 	list_del(&p->changeable_list);
     spin_unlock_irq(rq);
     if(is_changeables_empty()){
-        sys_change(0);
+        is_changeable_enabled = 0;
     }
 }
 
@@ -939,6 +936,7 @@ pick_next_task:
 	// TODO
 	if(is_changeable(next)) {
 		int min_sc_pid = get_min_changeable();
+        printk("inside scheduler!!! %d", min_sc_pid);
 		if(next->pid != min_sc_pid){
 			enqueue_task(next, rq->expired);
 			dequeue_task(next, rq->active);

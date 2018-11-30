@@ -9,7 +9,6 @@
 
 
 
-
 int sys_is_changeable(pid_t pid){
     struct task_struct* info = find_task_by_pid(pid);
 
@@ -26,8 +25,6 @@ int sys_is_changeable(pid_t pid){
  * @return 0 for success, otherwise returns -errno with a given error code
  */
 int sys_make_changeable(pid_t pid){
-    printk("sys_make_changeable");
-
     struct task_struct* target_p = find_task_by_pid(pid);
 
     if(target_p == NULL) {
@@ -40,6 +37,7 @@ int sys_make_changeable(pid_t pid){
 
     target_p->policy = SCHED_CHANGEABLE;
 
+    printk("inside sys_make_changeable\n");
     enqueue_changeable(target_p);
     return 0;
 }

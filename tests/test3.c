@@ -35,9 +35,10 @@ int main(){
         assert(change(1)==0);
         assert(get_policy(getpid())==1);
         return 0;
-    }
+    }*/
     else{//father
-         wait(NULL);//no son anymore
+        printf("father\n");
+        wait(NULL);//no son anymore
         assert(make_changeable(pid)==-1);//pid not excist
         assert(errno==ESRCH);//son process is dead
         assert(is_changeable(getpid())==0);//father is not changeable
@@ -55,6 +56,6 @@ int main(){
     for(i=0;i<6;i++){
         fork();
     }
-    fprintf(file,"%d\n",getpid());*/
+    fprintf(file,"%d\n",getpid());
     return 0;
 }
