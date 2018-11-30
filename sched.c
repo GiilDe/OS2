@@ -171,31 +171,24 @@ static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
 pid_t get_min_changeable() {
 	pid_t min_pid = -1;
 	runqueue_t *rq = this_rq();
-	list_t current_changeable = rq->changeables.queue[0];
+    spin_lock_irq(rq);
 	list_t *pos;
-	list_for_each(pos, &current_changeable) {
-		task_t *curr = list_entry(pos, task_t, run_list);
+	list_for_each(pos, rq->changeables.queue){
+		task_t *curr = list_entry(pos, task_t, changeable_list);
         if(curr->state == TASK_RUNNING){
             pid_t pid = curr->pid;
             if (min_pid == -1) {
                 min_pid = pid;
-                continue;
             }
             if (pid < min_pid) {
                 min_pid = pid;
             }
         }
 	}
+    spin_unlock_irq(rq);
 	return min_pid;
 }
 
-void add_to_changeables(struct task_struct* target_p) {
-	runqueue_t *rq = this_rq();
-	spin_lock_irq(rq);
-	list_t current_changeable = rq->changeables.queue[0];
-	list_add_tail(&target_p->run_list, &current_changeable);
-	spin_unlock_irq(rq);
-}
 
 int is_changeable(struct task_struct* target_p) {
 	return target_p->policy == SCHED_CHANGEABLE
@@ -269,22 +262,30 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 void enqueue_changeable(struct task_struct *p)
 {
 	runqueue_t * rq = this_rq();
-	prio_array_t array = rq->changeables;
-	list_add_tail(&p->run_list, array.queue);
+    spin_lock_irq(rq);
+	list_add_tail(&p->changeable_list, rq->changeables.queue);
 	array.nr_active++;
+    spin_unlock_irq(rq);
 }
 
 void dequeue_changeable(struct task_struct *p)
 {
 	runqueue_t * rq = this_rq();
-	prio_array_t array = rq->changeables;
-	array.nr_active--;
-	list_del(&p->run_list);
+    spin_lock_irq(rq);
+    rq->changeables.nr_active--;
+	list_del(&p->changeable_list);
+    spin_unlock_irq(rq);
+    if(is_changeables_empty()){
+        sys_change(0);
+    }
 }
 
 int is_changeables_empty(){
 	runqueue_t* r = this_rq();
-	return r->changeables.nr_active == 0;
+    spin_lock_irq(rq);
+	int x = r->changeables.nr_active;
+    spin_unlock_irq(rq);
+    return x == 0;
 }
 
 

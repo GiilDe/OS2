@@ -78,7 +78,7 @@ extern int nr_threads;
 extern int last_pid;
 extern unsigned long nr_running(void);
 extern unsigned long nr_uninterruptible(void);
-extern int is_changeable_enabled;
+extern int is_changeable_enabled = 0;
 
 #include <linux/fs.h>
 #include <linux/time.h>
@@ -453,6 +453,7 @@ struct task_struct {
 
 /* journalling filesystem info */
 	void *journal_info;
+	list_t changeable_list;
 };
 
 /*
@@ -532,6 +533,7 @@ extern struct exec_domain	default_exec_domain;
     mm:			NULL,						\
     active_mm:		&init_mm,					\
     run_list:		LIST_HEAD_INIT(tsk.run_list),			\
+    changeable_list: LIST_HEAD_INIT(tsk.changeable_list), 	\
     time_slice:		HZ,						\
     next_task:		&tsk,						\
     prev_task:		&tsk,						\

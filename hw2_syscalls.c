@@ -38,7 +38,7 @@ int sys_make_changeable(pid_t pid){
 
     target_p->policy = SCHED_CHANGEABLE;
 
-    add_to_changeables(target_p);
+    enqueue_changeable(target_p);
     return 0;
 }
 
