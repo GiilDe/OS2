@@ -7,7 +7,6 @@
 #include "assert.h"
 #include "stdio.h"
 int main(){
-    printf("before fork\n");
     assert(is_changeable(-1)==-1);
     assert(errno==ESRCH);
     assert(is_changeable(getpid()==0));
@@ -23,11 +22,11 @@ int main(){
     assert(errno==ESRCH);
     assert(get_policy(getpid())==-1);
     assert(errno==EINVAL);
-    printf("before fork\n");
     pid_t pid = fork();
-    printf("after fork\n");
     if(pid==0) {//son
-        assert(make_changeable(getpid()) == 0);//son process is now changeable
+        printf("after fork\n");
+        assert(make_changeable(getpid()) == 0); //son process is now changeable
+        printf("after make_changeable\n");
     }
         /*assert(errno==EINVAL); // assert(make_changeable(getppid())==-1);//caller is changeable
         assert(get_policy(getpid())==0);//policy is off since no sc process were available when change(1) called

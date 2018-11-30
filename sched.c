@@ -261,15 +261,25 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 
 void enqueue_changeable(struct task_struct *p)
 {
+    printk("enqueue_changeable");
 	runqueue_t * rq = this_rq();
     spin_lock_irq(rq);
 	list_add_tail(&p->changeable_list, rq->changeables.queue);
-	array.nr_active++;
+    rq->changeables.nr_active++;
     spin_unlock_irq(rq);
+}
+
+int is_changeables_empty(){
+    runqueue_t* r = this_rq();
+    spin_lock_irq(rq);
+    int x = r->changeables.nr_active;
+    spin_unlock_irq(rq);
+    return x == 0;
 }
 
 void dequeue_changeable(struct task_struct *p)
 {
+    printk("dequeue_changeable");
 	runqueue_t * rq = this_rq();
     spin_lock_irq(rq);
     rq->changeables.nr_active--;
@@ -279,15 +289,6 @@ void dequeue_changeable(struct task_struct *p)
         sys_change(0);
     }
 }
-
-int is_changeables_empty(){
-	runqueue_t* r = this_rq();
-    spin_lock_irq(rq);
-	int x = r->changeables.nr_active;
-    spin_unlock_irq(rq);
-    return x == 0;
-}
-
 
 static inline int effective_prio(task_t *p)
 {

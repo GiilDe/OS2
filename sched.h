@@ -453,6 +453,7 @@ struct task_struct {
 
 /* journalling filesystem info */
 	void *journal_info;
+/* new info */
 	list_t changeable_list;
 };
 
@@ -1007,7 +1008,6 @@ static inline int need_resched(void)
  * Add a CHANGEABLE process to the list of SC processes
  * @param target_p The PCB of the given process
  */
-void add_to_changeables(struct task_struct* target_p);
 int is_changeables_empty();
 void enqueue_changeable(struct task_struct *p);
 void dequeue_changeable(struct task_struct *p);

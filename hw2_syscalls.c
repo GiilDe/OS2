@@ -26,6 +26,8 @@ int sys_is_changeable(pid_t pid){
  * @return 0 for success, otherwise returns -errno with a given error code
  */
 int sys_make_changeable(pid_t pid){
+    printk("sys_make_changeable");
+
     struct task_struct* target_p = find_task_by_pid(pid);
 
     if(target_p == NULL) {
