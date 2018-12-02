@@ -8,7 +8,6 @@
 #include<asm/uaccess.h>
 
 
-
 int sys_is_changeable(pid_t pid){
     struct task_struct* info = find_task_by_pid(pid);
 
@@ -36,9 +35,7 @@ int sys_make_changeable(pid_t pid){
     }
 
     target_p->policy = SCHED_CHANGEABLE;
-
-    printk("inside sys_make_changeable\n");
-    enqueue_changeable(target_p);
+    enqueue_changeable_locking(target_p);
     return 0;
 }
 
@@ -46,7 +43,10 @@ int sys_change(int val){
     if(val != 1 && val != 0){
         return -EINVAL;
     }
-    is_changeable_enabled = val;
+    if(!is_changeables_empty()) {
+        // Start the regime only if there are currently CHANGEABLE processes in the system
+        is_changeable_enabled = val;
+    }
     return 0;
 }
 

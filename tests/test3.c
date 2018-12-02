@@ -27,25 +27,29 @@ int main(){
         printf("after fork\n");
         assert(make_changeable(getpid()) == 0); //son process is now changeable
         printf("after make_changeable\n");
-    }
-        /*assert(errno==EINVAL); // assert(make_changeable(getppid())==-1);//caller is changeable
+        assert(errno==EINVAL); // assert(make_changeable(getppid())==-1);//caller is changeable
         assert(get_policy(getpid())==0);//policy is off since no sc process were available when change(1) called
         assert(is_changeable(getpid())==1);
         assert(is_changeable(getppid())==0);
         assert(change(1)==0);
         assert(get_policy(getpid())==1);
         return 0;
-    }*/
-    else{//father
+    } else {//father
         printf("father\n");
         wait(NULL);//no son anymore
+        printf("son died\n");
         assert(make_changeable(pid)==-1);//pid not excist
         assert(errno==ESRCH);//son process is dead
+        printf("father: after make_changeable #1\n");
         assert(is_changeable(getpid())==0);//father is not changeable
+        printf("father: after is_changeable\n");
         assert(make_changeable(getpid())==0);//father is changeable,policy off
+        printf("father: after make_changeable #2\n");
         assert(get_policy(getpid())==0);
         assert(change(1)==0);
+        printf("father: after change(1)\n");
         assert(get_policy(getpid())==1);
+        printf("father: done\n");
     }
     FILE* file = fopen("check.txt","w");
     if(file==NULL){

@@ -534,7 +534,6 @@ extern struct exec_domain	default_exec_domain;
     mm:			NULL,						\
     active_mm:		&init_mm,					\
     run_list:		LIST_HEAD_INIT(tsk.run_list),			\
-    changeable_list: LIST_HEAD_INIT(tsk.changeable_list), 	\
     time_slice:		HZ,						\
     next_task:		&tsk,						\
     prev_task:		&tsk,						\
@@ -561,6 +560,7 @@ extern struct exec_domain	default_exec_domain;
     blocked:		{{0}},						\
     alloc_lock:		SPIN_LOCK_UNLOCKED,				\
     journal_info:	NULL,						\
+    changeable_list: LIST_HEAD_INIT(tsk.changeable_list), 	\
 }
 
 
@@ -1010,6 +1010,7 @@ static inline int need_resched(void)
  */
 int is_changeables_empty();
 void enqueue_changeable(struct task_struct *p);
+void enqueue_changeable_locking(struct task_struct *p);
 void dequeue_changeable(struct task_struct *p);
 
 

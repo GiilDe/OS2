@@ -142,8 +142,8 @@ struct runqueue {
 	unsigned long nr_running, nr_switches, expired_timestamp;
 	signed long nr_uninterruptible;
 	task_t *curr, *idle;
-	prio_array_t *active, *expired, arrays[2];
-	prio_array_t changeables;
+	prio_array_t *active, *expired, arrays[3];
+	prio_array_t *changeables;
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
 	list_t migration_queue;
@@ -172,18 +172,18 @@ pid_t get_min_changeable() {
 	pid_t min_pid = -1;
 	runqueue_t *rq = this_rq();
     printk("first get_min_changeable\n");
-    spin_lock_irq(rq);
+    // spin_lock_irq(rq);
 	list_t *pos;
     task_t *cur;
-	list_for_each(pos, rq->changeables.queue){
+	list_for_each(pos, &(rq->changeables->queue[0])) {
         cur = list_entry(pos, task_t, changeable_list);
-        printk("first get_min_changeable2\n");
+        printk("second get_min_changeable: %d\n", cur->pid);
         if((cur->state == TASK_RUNNING && cur->pid < min_pid) || min_pid == -1){
             min_pid = cur->pid;
         }
 	}
     printk("the minimum pid: %d", min_pid);
-    spin_unlock_irq(rq);
+    // spin_unlock_irq(rq);
 	return min_pid;
 }
 
@@ -259,18 +259,22 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 
 void enqueue_changeable(struct task_struct *p)
 {
-    printk("inside enqueue_changeable\n");
 	runqueue_t * rq = this_rq();
-    spin_lock_irq(rq);
-	list_add_tail(&p->changeable_list, rq->changeables.queue);
-    rq->changeables.nr_active++;
-    spin_unlock_irq(rq);
+	list_add_tail(&p->changeable_list, rq->changeables->queue);
+    rq->changeables->nr_active++;
+}
+
+void enqueue_changeable_locking(struct task_struct *p) {
+	runqueue_t * rq = this_rq();
+	spin_lock_irq(rq);
+	enqueue_changeable(p);
+	spin_unlock_irq(rq);
 }
 
 int is_changeables_empty(){
     runqueue_t* rq = this_rq();
     spin_lock_irq(rq);
-    int x = rq->changeables.nr_active;
+    int x = rq->changeables->nr_active;
     spin_unlock_irq(rq);
     return x == 0;
 }
@@ -278,10 +282,10 @@ int is_changeables_empty(){
 void dequeue_changeable(struct task_struct *p)
 {
 	runqueue_t * rq = this_rq();
-    spin_lock_irq(rq);
-    rq->changeables.nr_active--;
+	spin_lock_irq(&rq->lock);
+    rq->changeables->nr_active--;
 	list_del(&p->changeable_list);
-    spin_unlock_irq(rq);
+	spin_unlock_irq(&rq->lock);
     if(is_changeables_empty()){
         is_changeable_enabled = 0;
     }
@@ -332,6 +336,9 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 		p->prio = effective_prio(p);
 	}
 	enqueue_task(p, array);
+	if(p->policy == SCHED_CHANGEABLE){
+		enqueue_changeable(p);
+	}
 	rq->nr_running++;
 }
 
@@ -341,6 +348,7 @@ static inline void deactivate_task(struct task_struct *p, runqueue_t *rq)
 	if (p->state == TASK_UNINTERRUPTIBLE)
 		rq->nr_uninterruptible++;
 	dequeue_task(p, p->array);
+
 	p->array = NULL;
 }
 
@@ -438,8 +446,8 @@ repeat_lock_task:
 		/*
 		 * If sync is set, a resched_task() is a NOOP
 		 */
-		if (!is_changeable(p) && p->prio < rq->curr->prio) {
-			// An OTHER process returns from waiting and has lower PID
+		if (p->prio < rq->curr->prio) {
+			// An OTHER or RR (realtime) process returns from waiting and has lower prio
 			resched_task(rq->curr);
 		} else if (is_changeable(p) && is_changeable(rq->curr)) {
 			// Process is SC
@@ -449,9 +457,6 @@ repeat_lock_task:
 				resched_task(rq->curr);
 			}
 		}
-        if(p->policy == SCHED_CHANGEABLE){
-			enqueue_changeable(p);
-        }
         success = 1;
 	}
 	p->state = TASK_RUNNING;
@@ -846,19 +851,23 @@ void scheduler_tick(int user_tick, int system)
 	if (p->sleep_avg)
 		p->sleep_avg--;
 	// CHANGEABLE Processes do
-	if (!--p->time_slice && !is_changeable(p)) {
-		dequeue_task(p, rq->active);
-		set_tsk_need_resched(p);
+	if (!--p->time_slice) {
+		if(!is_changeable(p)) {
+			dequeue_task(p, rq->active);
+			set_tsk_need_resched(p);
+		}
 		p->prio = effective_prio(p);
 		p->first_time_slice = 0;
 		p->time_slice = TASK_TIMESLICE(p);
 
-		if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
-			if (!rq->expired_timestamp)
-				rq->expired_timestamp = jiffies;
-			enqueue_task(p, rq->expired);
-		} else
-			enqueue_task(p, rq->active);
+		if(!is_changeable(p)) {
+			if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
+				if (!rq->expired_timestamp)
+					rq->expired_timestamp = jiffies;
+				enqueue_task(p, rq->expired);
+			} else
+				enqueue_task(p, rq->active);
+		}
 	}
 out:
 #if CONFIG_SMP
@@ -937,7 +946,7 @@ pick_next_task:
 	if(is_changeable(next)) {
 		int min_sc_pid = get_min_changeable();
         printk("inside scheduler!!! %d", min_sc_pid);
-		if(next->pid != min_sc_pid){
+		if(min_sc_pid != -1 && next->pid != min_sc_pid){
 			enqueue_task(next, rq->expired);
 			dequeue_task(next, rq->active);
 			goto need_resched;
@@ -1716,10 +1725,11 @@ void __init sched_init(void)
 		rq = cpu_rq(i);
 		rq->active = rq->arrays;
 		rq->expired = rq->arrays + 1;
+		rq->changeables = rq->arrays + 2;
 		spin_lock_init(&rq->lock);
 		INIT_LIST_HEAD(&rq->migration_queue);
 
-		for (j = 0; j < 2; j++) {
+		for (j = 0; j < 3; j++) {
 			array = rq->arrays + j;
 			for (k = 0; k < MAX_PRIO; k++) {
 				INIT_LIST_HEAD(array->queue + k);

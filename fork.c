@@ -653,6 +653,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		goto bad_fork_cleanup;
 
 	INIT_LIST_HEAD(&p->run_list);
+	INIT_LIST_HEAD(&p->changeable_list);
 
 	p->p_cptr = NULL;
 	init_waitqueue_head(&p->wait_chldexit);
@@ -793,16 +794,6 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 			current->need_resched = 1;
 		}
 	}
-
-//	if(current->is_changeable) {
-//		runqueue_t *rq = this_rq();
-//		spin_lock_irq(rq);
-//
-//		list_t current = rq->changeables.queue[0];
-//		list_add_tail(&p->run_list, &current);
-//
-//		spin_unlock_irq(rq);
-//	}
 
 fork_out:
 	return retval;

@@ -489,7 +489,7 @@ static void exit_notify(void)
 
 NORET_TYPE void do_exit(long code)
 {
-	if(current->policy == SCHED_CHANGEABLE){
+	if(current->policy == SCHED_CHANGEABLE) {
 		dequeue_changeable(current);
 	}
 	struct task_struct *tsk = current;
