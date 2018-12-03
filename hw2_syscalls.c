@@ -34,10 +34,7 @@ int sys_make_changeable(pid_t pid){
         return -EINVAL;
     }
 
-    //TODO
-    if(target_p->state == TASK_RUNNING) {
-        enqueue_changeable_locking(target_p);
-    }
+    enqueue_changeable_locking(target_p);
     target_p->policy = SCHED_CHANGEABLE;
     return 0;
 }

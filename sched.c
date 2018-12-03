@@ -288,10 +288,9 @@ void enqueue_changeable(struct task_struct *p) {
 }
 
 void enqueue_changeable_locking(struct task_struct *p) {
-    runqueue_t * rq = this_rq();
+    runqueue_t *rq = this_rq();
     spin_lock_irq(rq);
     enqueue_changeable(p);
-    rq->changeables->nr_active++;
     spin_unlock_irq(rq);
 }
 
