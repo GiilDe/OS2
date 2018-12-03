@@ -30,9 +30,11 @@ int sys_make_changeable(pid_t pid){
         return -ESRCH;
     }
 
-    if(current->policy == SCHED_CHANGEABLE || target_p->policy == SCHED_CHANGEABLE) {
+    if(current->policy == SCHED_CHANGEABLE || target_p->policy == SCHED_CHANGEABLE || current->policy != SCHED_OTHER) {
         return -EINVAL;
     }
+
+    // TODO Inform target
 
     target_p->policy = SCHED_CHANGEABLE;
     enqueue_changeable_locking(target_p);

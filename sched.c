@@ -171,18 +171,22 @@ static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
 pid_t get_min_changeable() {
 	pid_t min_pid = -1;
 	runqueue_t *rq = this_rq();
-    printk("first get_min_changeable\n");
     // spin_lock_irq(rq);
 	list_t *pos;
     task_t *cur;
-	list_for_each(pos, &(rq->changeables->queue[0])) {
+
+    if(list_empty(rq->changeables->queue)) {
+    	return min_pid;
+    }
+
+	list_for_each(pos, rq->changeables->queue) {
         cur = list_entry(pos, task_t, changeable_list);
-        printk("second get_min_changeable: %d\n", cur->pid);
+        printk("get_min_changeable: %d\n", cur->pid);
         if((cur->state == TASK_RUNNING && cur->pid < min_pid) || min_pid == -1){
             min_pid = cur->pid;
         }
 	}
-    printk("the minimum pid: %d", min_pid);
+    printk("the minimum pid: %d\n", min_pid);
     // spin_unlock_irq(rq);
 	return min_pid;
 }
@@ -261,6 +265,7 @@ void enqueue_changeable(struct task_struct *p)
 {
 	runqueue_t * rq = this_rq();
 	list_add_tail(&p->changeable_list, rq->changeables->queue);
+	__set_bit(0, rq->changeables->bitmap);
     rq->changeables->nr_active++;
 }
 
@@ -285,6 +290,8 @@ void dequeue_changeable(struct task_struct *p)
 	spin_lock_irq(&rq->lock);
     rq->changeables->nr_active--;
 	list_del(&p->changeable_list);
+	if (list_empty(rq->changeables->queue))
+		__clear_bit(0, rq->changeables->bitmap);
 	spin_unlock_irq(&rq->lock);
     if(is_changeables_empty()){
         is_changeable_enabled = 0;
@@ -453,6 +460,7 @@ repeat_lock_task:
 			// Process is SC
 			pid_t pid = p->pid;
 			if(pid < rq->curr->pid) {
+				printk("Another SC process with PID %d woke up and needs to reschedule process %d\n", pid, rq->curr->pid);
 				// Another SC process woke up and has a lower PID
 				resched_task(rq->curr);
 			}
@@ -927,6 +935,7 @@ pick_next_task:
 		goto switch_tasks;
 	}
 
+choose_next:
 	array = rq->active;
 	if (unlikely(!array->nr_active)) {
 		/*
@@ -945,11 +954,13 @@ pick_next_task:
 	// TODO
 	if(is_changeable(next)) {
 		int min_sc_pid = get_min_changeable();
-        printk("inside scheduler!!! %d", min_sc_pid);
-		if(min_sc_pid != -1 && next->pid != min_sc_pid){
-			enqueue_task(next, rq->expired);
+        printk("Next process is SC with PID %d\n", next->pid);
+		if(min_sc_pid != -1 && next->pid != min_sc_pid) {
+			printk("Process with PID %d was disregarded since there exists an SC process with PID %d\n", next->pid, min_sc_pid);
 			dequeue_task(next, rq->active);
-			goto need_resched;
+			enqueue_task(next, rq->expired);
+			// spin_unlock_irq(&rq->lock);
+			goto choose_next;
 		}
 	}
 
