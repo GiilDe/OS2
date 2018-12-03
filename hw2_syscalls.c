@@ -37,7 +37,6 @@ int sys_make_changeable(pid_t pid){
     // TODO Inform target
 
     target_p->policy = SCHED_CHANGEABLE;
-    enqueue_changeable_locking(target_p);
     return 0;
 }
 
