@@ -34,8 +34,10 @@ int sys_make_changeable(pid_t pid){
         return -EINVAL;
     }
 
-    // TODO Inform target
-
+    //TODO
+    if(target_p->state == TASK_RUNNING) {
+        enqueue_changeable_locking(target_p);
+    }
     target_p->policy = SCHED_CHANGEABLE;
     return 0;
 }
@@ -45,8 +47,7 @@ int sys_change(int val){
         return -EINVAL;
     }
     if(!is_changeables_empty()) {
-        // Start the regime only if there are currently CHANGEABLE processes in the system
-        is_changeable_enabled = val;
+        set_is_changeable_enabled(val);
     }
     return 0;
 }

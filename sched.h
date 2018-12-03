@@ -78,7 +78,6 @@ extern int nr_threads;
 extern int last_pid;
 extern unsigned long nr_running(void);
 extern unsigned long nr_uninterruptible(void);
-extern int is_changeable_enabled;
 
 #include <linux/fs.h>
 #include <linux/time.h>
@@ -165,6 +164,9 @@ extern int schedule_task(struct tq_struct *task);
 extern void flush_scheduled_tasks(void);
 extern int start_context_thread(void);
 extern int current_is_keventd(void);
+
+void set_is_changeable_enabled(int val);
+int is_changeable_enabled();
 
 /*
  * Priority of a process goes from 0..MAX_PRIO-1, valid RT

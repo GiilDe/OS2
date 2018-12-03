@@ -790,11 +790,10 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		 * @Miki: But allow a CHANGEABLE process to run before his child,
 		 * i.e don't flag him for rescheduling (Only when the regime is enabled)
 		 */
-		// TODO Check this case
-//		if(!is_changeable(current)) {
-//			current->need_resched = 1;
-//		}
-		current->need_resched = 1;
+		// TODO
+		if(!is_changeable(current)) {
+			current->need_resched = 1;
+		}
 	}
 
 fork_out:
