@@ -167,6 +167,7 @@ extern int current_is_keventd(void);
 
 void set_is_changeable_enabled(int val);
 int is_changeable_enabled();
+void set_changeables_if_empty();
 
 /*
  * Priority of a process goes from 0..MAX_PRIO-1, valid RT

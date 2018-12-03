@@ -282,7 +282,6 @@ void enqueue_changeable(struct task_struct *p) {
     if(p->state == TASK_RUNNING) {
         runqueue_t * rq = this_rq();
         list_add_tail(&p->changeable_list, rq->changeables->queue);
-        __set_bit(0, rq->changeables->bitmap);
         rq->changeables->nr_active++;
     }
 }
@@ -302,16 +301,20 @@ int is_changeables_empty(){
     return x == 0;
 }
 
+void set_changeables_if_empty(){
+    runqueue_t* rq = this_rq();
+    spin_lock_irq(rq);
+    if(!rq->changeables->nr_active) {
+        set_is_changeable_enabled(0);
+    }
+    spin_unlock_irq(rq);
+}
+
 void dequeue_changeable(struct task_struct *p)
 {
     runqueue_t * rq = this_rq();
     list_del(&p->changeable_list);
     rq->changeables->nr_active--;
-    if (list_empty(rq->changeables->queue))
-        __clear_bit(0, rq->changeables->bitmap);
-    if(!rq->changeables->nr_active) {
-        set_is_changeable_enabled(0);
-    }
 }
 
 void dequeue_changeable_locking(struct task_struct *p) {
