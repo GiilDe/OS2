@@ -182,7 +182,7 @@ pid_t get_min_changeable() {
 	list_for_each(pos, rq->changeables->queue) {
         cur = list_entry(pos, task_t, changeable_list);
         printk("get_min_changeable: %d\n", cur->pid);
-        if((cur->state == TASK_RUNNING && cur->pid < min_pid) || min_pid == -1){
+        if(cur->state == TASK_RUNNING && (cur->pid < min_pid || min_pid == -1)){
             min_pid = cur->pid;
         }
 	}
@@ -287,15 +287,20 @@ int is_changeables_empty(){
 void dequeue_changeable(struct task_struct *p)
 {
 	runqueue_t * rq = this_rq();
-	spin_lock_irq(&rq->lock);
     rq->changeables->nr_active--;
 	list_del(&p->changeable_list);
 	if (list_empty(rq->changeables->queue))
 		__clear_bit(0, rq->changeables->bitmap);
-	spin_unlock_irq(&rq->lock);
-    if(is_changeables_empty()){
+    if(!rq->changeables->nr_active) {
         is_changeable_enabled = 0;
     }
+}
+
+void dequeue_changeable_locking(struct task_struct *p) {
+	runqueue_t * rq = this_rq();
+	spin_lock_irq(&rq->lock);
+	dequeue_changeable(p);
+	spin_unlock_irq(&rq->lock);
 }
 
 static inline int effective_prio(task_t *p)
@@ -355,6 +360,9 @@ static inline void deactivate_task(struct task_struct *p, runqueue_t *rq)
 	if (p->state == TASK_UNINTERRUPTIBLE)
 		rq->nr_uninterruptible++;
 	dequeue_task(p, p->array);
+	if(p->policy == SCHED_CHANGEABLE){
+		dequeue_changeable(p);
+	}
 
 	p->array = NULL;
 }
@@ -941,6 +949,7 @@ choose_next:
 		/*
 		 * Switch the active and expired arrays.
 		 */
+		printk("Switching the active and expired arrays\n");
 		rq->active = rq->expired;
 		rq->expired = array;
 		array = rq->active;

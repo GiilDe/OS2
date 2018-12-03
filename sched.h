@@ -1012,6 +1012,7 @@ int is_changeables_empty();
 void enqueue_changeable(struct task_struct *p);
 void enqueue_changeable_locking(struct task_struct *p);
 void dequeue_changeable(struct task_struct *p);
+void dequeue_changeable_locking(struct task_struct *p);
 
 
 /**
