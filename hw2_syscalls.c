@@ -34,7 +34,7 @@ int sys_make_changeable(pid_t pid){
         return -EINVAL;
     }
 
-    enqueue_changeable_locking(target_p);
+    enqueue_changeable_locked(target_p);
     target_p->policy = SCHED_CHANGEABLE;
     return 0;
 }
@@ -43,7 +43,7 @@ int sys_change(int val){
     if(val != 1 && val != 0){
         return -EINVAL;
     }
-    if(!is_changeables_empty()) {
+    if(!is_changeables_empty_locked()) {
         set_is_changeable_enabled_locked(val);
     }
     return 0;
@@ -65,5 +65,5 @@ int sys_get_policy(pid_t pid){
         return -EINVAL;
     }
 
-    return is_changeable(target_p);
+    return is_changeable_locked(target_p);
 }

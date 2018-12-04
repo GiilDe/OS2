@@ -1,0 +1,26 @@
+#!/bin/bash
+g++ test5.c -o test5
+echo "Running test 5"
+./test5
+sleep 1
+i=1
+prv_line=""
+while read line; do 
+if (($i != 1 && $i < 32)); then
+	if (( $prv_line > $line)); then
+		echo "process do not run in ascending pid order"
+		exit
+	fi
+fi
+if (($i > 31 )); then
+	if [[ $line != "reg"* ]]; then
+		echo "preempting SC process when shouldn't"
+		exit
+	fi
+fi
+i=$i+1
+prv_line=$line
+done < test5.txt
+echo "Test 5 passed"
+rm test5
+rm test5.txt

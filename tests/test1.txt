@@ -1,0 +1,6 @@
+#!/bin/bash
+g++ test1.c -o test1
+echo "Running test 1"
+./test1
+rm test1
+sleep 1

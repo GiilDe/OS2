@@ -165,13 +165,33 @@ extern void flush_scheduled_tasks(void);
 extern int start_context_thread(void);
 extern int current_is_keventd(void);
 
+//TODO
 void set_is_changeable_enabled(int val);
-int is_changeable_enabled();
 void set_is_changeable_enabled_locked(int val);
+int is_changeable_enabled();
+void set_changeables_if_empty_locked();
 void set_changeables_if_empty();
+int does_changeables_include_locked(struct task_struct* target_p);
 int does_changeables_include(struct task_struct* target_p);
+void dequeue_changeable_and_count_locked(struct task_struct *p);
 void dequeue_changeable_and_count(struct task_struct *p);
 void increment_changeables();
+
+/**
+ * Add a CHANGEABLE process to the list of SC processes
+ * @param target_p The PCB of the given process
+ */
+int is_changeables_empty_locked();
+void enqueue_changeable_locked(struct task_struct *p);
+
+/**
+ * Check if a given process should behave as an SC process (CHANGEABLE)
+ * @param target_p
+ * @return 1 if the process should behave as SC, 0 if it should behave as SO
+ */
+int is_changeable_locked(struct task_struct* target_p);
+int is_changeable(struct task_struct* target_p);
+
 
 /*
  * Priority of a process goes from 0..MAX_PRIO-1, valid RT
@@ -1011,23 +1031,9 @@ static inline int need_resched(void)
 	return unlikely(current->need_resched);
 }
 
-/**
- * Add a CHANGEABLE process to the list of SC processes
- * @param target_p The PCB of the given process
- */
-int is_changeables_empty();
-void enqueue_changeable(struct task_struct *p);
-void enqueue_changeable_locking(struct task_struct *p);
-void dequeue_changeable(struct task_struct *p);
-void dequeue_changeable_locking(struct task_struct *p);
 
 
-/**
- * Check if a given process should behave as an SC process (CHANGEABLE)
- * @param target_p
- * @return 1 if the process should behave as SC, 0 if it should behave as SO
- */
-int is_changeable(struct task_struct* target_p);
+
 
 #endif /* __KERNEL__ */
 

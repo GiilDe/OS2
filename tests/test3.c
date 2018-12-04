@@ -6,6 +6,8 @@
 #include "stdio.h"
 #include "assert.h"
 #include "stdio.h"
+#include "test.h"
+
 int main(){
     assert(is_changeable(-1)==-1);
     assert(errno==ESRCH);

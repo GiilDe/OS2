@@ -191,6 +191,14 @@ void set_is_changeable_enabled_locked(int val){
     spin_unlock_irq(rq);
 }
 
+int is_changeable_enabled_locked(){
+    runqueue_t *rq = this_rq();
+    spin_lock_irq(rq);
+    int x = rq->is_changeable_enabled;
+    spin_unlock_irq(rq);
+    return x;
+}
+
 int is_changeable_enabled(){
     runqueue_t *rq = this_rq();
     return rq->is_changeable_enabled;
@@ -206,6 +214,21 @@ int does_changeables_include(struct task_struct* target_p){
             return 1;
         }
     }
+    return 0;
+}
+
+int does_changeables_include_locked(struct task_struct* target_p){
+    runqueue_t *rq = this_rq();
+    spin_lock_irq(rq);
+    list_t *pos;
+    task_t *cur;
+    list_for_each(pos, rq->changeables->queue) {
+        cur = list_entry(pos, task_t, changeable_list);
+        if(cur == target_p){
+            return 1;
+        }
+    }
+    spin_unlock_irq(rq);
     return 0;
 }
 
@@ -229,10 +252,14 @@ pid_t get_min_changeable() {
     return min_pid;
 }
 
+int is_changeable_locked(struct task_struct* target_p) {
+    return target_p->policy == SCHED_CHANGEABLE
+           && is_changeable_enabled_locked();
+}
 
 int is_changeable(struct task_struct* target_p) {
     return target_p->policy == SCHED_CHANGEABLE
-           && is_changeable_enabled(); // This is a global variable
+           && is_changeable_enabled();
 }
 
 /*
@@ -314,14 +341,14 @@ void enqueue_changeable_and_count(struct task_struct *p) {
     rq->changeables->nr_active++;
 }
 
-void enqueue_changeable_locking(struct task_struct *p) {
+void enqueue_changeable_locked(struct task_struct *p) {
     runqueue_t *rq = this_rq();
     spin_lock_irq(rq);
     enqueue_changeable_and_count(p);
     spin_unlock_irq(rq);
 }
 
-int is_changeables_empty(){
+int is_changeables_empty_locked(){
     runqueue_t* rq = this_rq();
     spin_lock_irq(rq);
     int x = rq->changeables->nr_active;
@@ -329,13 +356,20 @@ int is_changeables_empty(){
     return x == 0;
 }
 
-void set_changeables_if_empty(){
+void set_changeables_if_empty_locked(){
     runqueue_t* rq = this_rq();
     spin_lock_irq(rq);
     if(rq->changeables->nr_active == 0) {
         set_is_changeable_enabled(0);
     }
     spin_unlock_irq(rq);
+}
+
+void set_changeables_if_empty(){
+    runqueue_t* rq = this_rq();
+    if(rq->changeables->nr_active == 0) {
+        set_is_changeable_enabled(0);
+    }
 }
 
 void dequeue_changeable_and_count(struct task_struct *p)
@@ -346,18 +380,21 @@ void dequeue_changeable_and_count(struct task_struct *p)
     rq->changeables->nr_active--;
 }
 
+void dequeue_changeable_and_count_locked(struct task_struct *p)
+{
+    runqueue_t* rq = this_rq();
+    spin_lock_irq(rq);
+    if(does_changeables_include(p))
+        list_del(&p->changeable_list);
+    rq->changeables->nr_active--;
+    spin_unlock_irq(rq);
+}
+
 void dequeue_changeable(struct task_struct *p)
 {
     runqueue_t* rq = this_rq();
     if(does_changeables_include(p))
         list_del(&p->changeable_list);
-}
-
-void dequeue_changeable_locking(struct task_struct *p) {
-    runqueue_t* rq = this_rq();
-    spin_lock_irq(&rq->lock);
-    dequeue_changeable(p);
-    spin_unlock_irq(&rq->lock);
 }
 
 static inline int effective_prio(task_t *p)
