@@ -47,5 +47,5 @@ int main() {
     TASSERT(get_policy(getpid()) == 1,
             "Stress tests: get_policy has failed ", __LINE__);
     fprintf(file, "%d\n", getpid());
-    printf("Test 6 passed\n");
+    // printf("Test 6 passed\n");
 }

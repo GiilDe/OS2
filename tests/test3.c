@@ -8,63 +8,29 @@
 #include "stdio.h"
 #include "test.h"
 
-int main(){
-    assert(is_changeable(-1)==-1);
-    assert(errno==ESRCH);
-    assert(is_changeable(getpid()==0));
-    assert(make_changeable(-1)==-1);
-    assert(errno==ESRCH);
-    assert(change(-1)==-1);
-    assert(errno==EINVAL);
-    assert(change(2)==-1);
-    assert(errno==EINVAL);
-    assert(change(0)==0);
-    assert(change(1)==0);
-    assert(get_policy(-1)==-1);
-    assert(errno==ESRCH);
-    assert(get_policy(getpid())==-1);
-    assert(errno==EINVAL);
-    pid_t pid = fork();
-    if(pid==0) {//son
-        printf("after fork\n");
-        assert(make_changeable(getpid()) == 0); //son process is now changeable
-        printf("after make_changeable\n");
-        assert(errno==EINVAL); // assert(make_changeable(getppid())==-1);//caller is changeable
-        assert(get_policy(getpid())==0);//policy is off since no sc process were available when change(1) called
-        assert(is_changeable(getpid())==1);
-        assert(is_changeable(getppid())==0);
-        assert(change(1)==0);
-        assert(get_policy(getpid())==1);
-        return 0;
-    } else {//father
-        printf("father\n");
-        wait(NULL);//no son anymore
-        printf("son died\n");
-        assert(make_changeable(pid)==-1);//pid not excist
-        assert(errno==ESRCH);//son process is dead
-        printf("father: after make_changeable #1\n");
-        assert(is_changeable(getpid())==0);//father is not changeable
-        printf("father: after is_changeable\n");
-        assert(make_changeable(getpid())==0);//father is changeable,policy off
-        printf("father: after make_changeable #2\n");
-        assert(get_policy(getpid())==0);
-        assert(change(1)==0);
-        printf("father: after change(1)\n");
-        assert(get_policy(getpid())==1);
-        printf("father: done\n");
+int main() {
+    /*creates alot of sc processes, send father waiting (while he has 1 son only)
+    therefore biggest pid should finish first*/
+    FILE *file = fopen("test3.txt", "w");
+    TASSERT(make_changeable(getpid()) == 0,
+            "make_changeable: should return 0 when process is now CS",
+            __LINE__);
+    TASSERT(change(1) == 0, "change: should return 0 on success", __LINE__);
+    pid_t p = fork();
+    int j = 0;
+    if (p == 0) {
+        for (j = 0; j < 1000; j++) {
+            pid_t p1 = fork();
+            if (p1 != 0) {
+                wait(NULL);
+                goto print;
+            }
+        }
+    } else {//father,lower pid
+        wait(NULL);
     }
-    FILE* file = fopen("check.txt","w");
-    if(file==NULL){
-        printf("failed to lunch file");
-        return 0;
-    }
-    printf("this pid: %d\n", getpid());
-    int i;
-    for(i=0;i<6;i++){
-        fork();
-        printf("i: %d\n", i);
-        printf("this pid (inside for): %d\n", getpid());
-    }
-    //fprintf(file,"%d\n",getpid());
+    print:
+    fprintf(file, "%d\n", getpid());
     return 0;
+
 }

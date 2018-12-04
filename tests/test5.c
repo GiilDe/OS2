@@ -13,7 +13,8 @@ int main() {
     pid_t p = fork();
     if (p == 0) {
         TASSERT(make_changeable(getpid()) == 0,
-                "make_changeable: should return 0 when process is now CS", __LINE__);
+                "make_changeable: should return 0 when process is now CS",
+                __LINE__);
         TASSERT(change(1) == 0, "change: should return 0 on success", __LINE__);
         int j;
         for (j = 0; j < 30; j++) {

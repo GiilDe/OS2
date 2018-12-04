@@ -913,6 +913,9 @@ static inline void idle_tick(void)
  */
 void scheduler_tick(int user_tick, int system)
 {
+    if(is_changeable(current)){
+        return;
+    }
     int cpu = smp_processor_id();
     runqueue_t *rq = this_rq();
     task_t *p = current;
@@ -963,24 +966,19 @@ void scheduler_tick(int user_tick, int system)
      */
     if (p->sleep_avg)
         p->sleep_avg--;
-    // CHANGEABLE Processes do
     if (!--p->time_slice) {
-        if(!is_changeable(p)) {
-            dequeue_task(p, rq->active);
-            set_tsk_need_resched(p);
-        }
+        dequeue_task(p, rq->active);
+        set_tsk_need_resched(p);
         p->prio = effective_prio(p);
         p->first_time_slice = 0;
         p->time_slice = TASK_TIMESLICE(p);
 
-        if(!is_changeable(p)) {
-            if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
-                if (!rq->expired_timestamp)
-                    rq->expired_timestamp = jiffies;
-                enqueue_task(p, rq->expired);
-            } else
-                enqueue_task(p, rq->active);
-        }
+        if (!TASK_INTERACTIVE(p) || EXPIRED_STARVING(rq)) {
+            if (!rq->expired_timestamp)
+                rq->expired_timestamp = jiffies;
+            enqueue_task(p, rq->expired);
+        } else
+            enqueue_task(p, rq->active);
     }
     out:
 #if CONFIG_SMP
