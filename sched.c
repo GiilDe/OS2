@@ -236,19 +236,40 @@ int does_changeables_include_locked(struct task_struct* target_p){
 pid_t get_min_changeable() {
     pid_t min_pid = -1;
     runqueue_t *rq = this_rq();
-    // spin_lock_irq(rq);
     list_t *pos;
     task_t *cur;
 
     list_for_each(pos, rq->changeables->queue) {
         cur = list_entry(pos, task_t, changeable_list);
-        // printk("get_min_changeable: %d\n", cur->pid);
         if(cur->pid < min_pid || min_pid == -1){
             min_pid = cur->pid;
         }
     }
-    //printk("the minimum pid: %d\n", min_pid);
-    // spin_unlock_irq(rq);
+    return min_pid;
+}
+
+void update_running_process(){
+    if(current->policy == SCHED_CHANGEABLE) {
+        pid_t min_pid = get_min_changeable_locked();
+        if(min_pid < current->pid){
+            current->need_resched = 1;
+        }
+    }
+}
+
+pid_t get_min_changeable_locked() {
+    pid_t min_pid = -1;
+    runqueue_t *rq = this_rq();
+    spin_lock_irq(rq);
+    list_t *pos;
+    task_t *cur;
+    list_for_each(pos, rq->changeables->queue) {
+        cur = list_entry(pos, task_t, changeable_list);
+        if(cur->pid < min_pid || min_pid == -1){
+            min_pid = cur->pid;
+        }
+    }
+    spin_unlock_irq(rq);
     return min_pid;
 }
 

@@ -176,7 +176,8 @@ int does_changeables_include(struct task_struct* target_p);
 void dequeue_changeable_and_count_locked(struct task_struct *p);
 void dequeue_changeable_and_count(struct task_struct *p);
 void increment_changeables();
-
+pid_t get_min_changeable_locked();
+void update_running_process();
 /**
  * Add a CHANGEABLE process to the list of SC processes
  * @param target_p The PCB of the given process

@@ -35,6 +35,7 @@ int sys_make_changeable(pid_t pid){
     }
 
     enqueue_changeable_locked(target_p);
+    update_running_process();
     target_p->policy = SCHED_CHANGEABLE;
     return 0;
 }
