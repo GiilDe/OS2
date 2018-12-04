@@ -167,7 +167,11 @@ extern int current_is_keventd(void);
 
 void set_is_changeable_enabled(int val);
 int is_changeable_enabled();
+void set_is_changeable_enabled_locked(int val);
 void set_changeables_if_empty();
+int does_changeables_include(struct task_struct* target_p);
+void dequeue_changeable_and_count(struct task_struct *p);
+void increment_changeables();
 
 /*
  * Priority of a process goes from 0..MAX_PRIO-1, valid RT

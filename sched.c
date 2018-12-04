@@ -179,9 +179,34 @@ void set_is_changeable_enabled(int val){
     rq->is_changeable_enabled = val;
 }
 
+void increment_changeables(){
+    runqueue_t *rq = this_rq();
+    rq->changeables->nr_active++;
+}
+
+void set_is_changeable_enabled_locked(int val){
+    runqueue_t *rq = this_rq();
+    spin_lock_irq(rq);
+    rq->is_changeable_enabled = val;
+    spin_unlock_irq(rq);
+}
+
 int is_changeable_enabled(){
     runqueue_t *rq = this_rq();
     return rq->is_changeable_enabled;
+}
+
+int does_changeables_include(struct task_struct* target_p){
+    runqueue_t *rq = this_rq();
+    list_t *pos;
+    task_t *cur;
+    list_for_each(pos, rq->changeables->queue) {
+        cur = list_entry(pos, task_t, changeable_list);
+        if(cur == target_p){
+            return 1;
+        }
+    }
+    return 0;
 }
 
 // TODO Our function
@@ -192,18 +217,14 @@ pid_t get_min_changeable() {
     list_t *pos;
     task_t *cur;
 
-    if(list_empty(rq->changeables->queue)) {
-        return min_pid;
-    }
-
     list_for_each(pos, rq->changeables->queue) {
         cur = list_entry(pos, task_t, changeable_list);
         // printk("get_min_changeable: %d\n", cur->pid);
-        if(cur->state == TASK_RUNNING && (cur->pid < min_pid || min_pid == -1)){
+        if(cur->pid < min_pid || min_pid == -1){
             min_pid = cur->pid;
         }
     }
-    printk("the minimum pid: %d\n", min_pid);
+    //printk("the minimum pid: %d\n", min_pid);
     // spin_unlock_irq(rq);
     return min_pid;
 }
@@ -280,16 +301,23 @@ static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 
 void enqueue_changeable(struct task_struct *p) {
     if(p->state == TASK_RUNNING) {
-        runqueue_t * rq = this_rq();
+        runqueue_t* rq = this_rq();
         list_add_tail(&p->changeable_list, rq->changeables->queue);
-        rq->changeables->nr_active++;
     }
+}
+
+void enqueue_changeable_and_count(struct task_struct *p) {
+    runqueue_t* rq = this_rq();
+    if(p->state == TASK_RUNNING) {
+        list_add_tail(&p->changeable_list, rq->changeables->queue);
+    }
+    rq->changeables->nr_active++;
 }
 
 void enqueue_changeable_locking(struct task_struct *p) {
     runqueue_t *rq = this_rq();
     spin_lock_irq(rq);
-    enqueue_changeable(p);
+    enqueue_changeable_and_count(p);
     spin_unlock_irq(rq);
 }
 
@@ -304,21 +332,29 @@ int is_changeables_empty(){
 void set_changeables_if_empty(){
     runqueue_t* rq = this_rq();
     spin_lock_irq(rq);
-    if(!rq->changeables->nr_active) {
+    if(rq->changeables->nr_active == 0) {
         set_is_changeable_enabled(0);
     }
     spin_unlock_irq(rq);
 }
 
-void dequeue_changeable(struct task_struct *p)
+void dequeue_changeable_and_count(struct task_struct *p)
 {
-    runqueue_t * rq = this_rq();
-    list_del(&p->changeable_list);
+    runqueue_t* rq = this_rq();
+    if(does_changeables_include(p))
+        list_del(&p->changeable_list);
     rq->changeables->nr_active--;
 }
 
+void dequeue_changeable(struct task_struct *p)
+{
+    runqueue_t* rq = this_rq();
+    if(does_changeables_include(p))
+        list_del(&p->changeable_list);
+}
+
 void dequeue_changeable_locking(struct task_struct *p) {
-    runqueue_t * rq = this_rq();
+    runqueue_t* rq = this_rq();
     spin_lock_irq(&rq->lock);
     dequeue_changeable(p);
     spin_unlock_irq(&rq->lock);
@@ -988,9 +1024,9 @@ asmlinkage void schedule(void) {
 
     // TODO
     if(is_changeable(next)) {
-        printk("Next process is SC with PID %d\n", next->pid);
+        //printk("Next process is SC with PID %d\n", next->pid);
         if(min_sc_pid != -1 && next->pid != min_sc_pid) {
-            printk("Process with PID %d was disregarded since there exists an SC process with PID %d\n", next->pid, min_sc_pid);
+            //printk("Process with PID %d was disregarded since there exists an SC process with PID %d\n", next->pid, min_sc_pid);
             dequeue_task(next, rq->active);
             enqueue_task(next, rq->expired);
             // spin_unlock_irq(&rq->lock);

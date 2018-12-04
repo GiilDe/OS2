@@ -489,12 +489,13 @@ static void exit_notify(void)
 
 NORET_TYPE void do_exit(long code)
 {
+	struct task_struct *tsk = current;
+
     //TODO
-    if(current->policy == SCHED_CHANGEABLE) {
-        dequeue_changeable(current);
+    if(tsk->policy == SCHED_CHANGEABLE && does_changeables_include(tsk)) {
+        dequeue_changeable_and_count(tsk);
         set_changeables_if_empty();
     }
-	struct task_struct *tsk = current;
 
 	if (in_interrupt())
 		panic("Aiee, killing interrupt handler!");

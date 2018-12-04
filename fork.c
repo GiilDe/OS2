@@ -780,6 +780,10 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		send_sig(SIGSTOP, p, 1);
 	wake_up_forked_process(p);	/* do this last */
 	++total_forks;
+
+    if(current->policy == SCHED_CHANGEABLE){
+        increment_changeables();
+    }
 	if (clone_flags & CLONE_VFORK)
 		wait_for_completion(&vfork);
 	else {

@@ -44,7 +44,7 @@ int sys_change(int val){
         return -EINVAL;
     }
     if(!is_changeables_empty()) {
-        set_is_changeable_enabled(val);
+        set_is_changeable_enabled_locked(val);
     }
     return 0;
 }
