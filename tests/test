@@ -1,0 +1,30 @@
+echo "Compiling OS2 Tests..."
+
+dos2unix os2tests.cpp os2stress.cpp
+if [ ! -f hw2_syscalls.h ]; then
+    echo "[31mhw2_syscalls.h is missing from the working directory![0m"
+    exit 1
+fi
+dos2unix hw2_syscalls.h
+
+g++ os2tests.cpp -o functional
+if [[ -f functional ]]; then
+    echo "Running functional tests"
+    ./functional
+    echo "Cleaning up..."
+    rm -f functional
+else
+    echo "[31mThere was an error compiling the code. See g++ output above[0m"
+    exit 1
+fi
+
+g++ os2stress.cpp -o stress
+if [[ -f stress ]]; then
+    echo "Running sress tests"
+    ./stress
+    echo "Cleaning up..."
+    rm -f stress
+else
+    echo "[31mThere was an error compiling the code. See g++ output above[0m"
+    exit 1
+fi
