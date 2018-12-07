@@ -477,9 +477,6 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
         p->prio = effective_prio(p);
     }
     enqueue_task(p, array);
-    if(p->policy == SCHED_CHANGEABLE){
-        enqueue_changeable(p);
-    }
     rq->nr_running++;
 }
 
