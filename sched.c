@@ -366,7 +366,7 @@ void enqueue_changeable_and_count(struct task_struct *p) {
     rq->changeables->nr_active++;
 }
 
-void enqueue_changeable_locked(struct task_struct *p) {
+void enqueue_changeable_and_count_locked(struct task_struct *p) {
     runqueue_t *rq = this_rq();
     spin_lock_irq(rq);
     enqueue_changeable_and_count(p);

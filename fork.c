@@ -782,7 +782,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	++total_forks;
 
     if(current->policy == SCHED_CHANGEABLE){
-        increment_changeables();
+        enqueue_changeable_and_count_locked(p);
     }
 	if (clone_flags & CLONE_VFORK)
 		wait_for_completion(&vfork);

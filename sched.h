@@ -185,7 +185,7 @@ void update_running_process();
  * @param target_p The PCB of the given process
  */
 int is_changeables_empty_locked();
-void enqueue_changeable_locked(struct task_struct *p);
+void enqueue_changeable_and_count_locked(struct task_struct *p);
 
 /**
  * Check if a given process should behave as an SC process (CHANGEABLE)
