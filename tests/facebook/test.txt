@@ -121,6 +121,7 @@ fi
 i=$i+1
 prv_line=$line
 done < test6.txt
+sleep 15
 echo "Test 6 passed"
 rm test6.txt
 rm test6

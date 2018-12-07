@@ -11,7 +11,7 @@
 int sys_is_changeable(pid_t pid){
     struct task_struct* info = find_task_by_pid(pid);
 
-    if(info == NULL) {
+    if(info == NULL || info->state == TASK_ZOMBIE) {
         return -ESRCH;
     }
 
@@ -30,13 +30,15 @@ int sys_make_changeable(pid_t pid){
         return -ESRCH;
     }
 
-    if(current->policy == SCHED_CHANGEABLE || target_p->policy == SCHED_CHANGEABLE || current->policy != SCHED_OTHER) {
+    if(current->policy == SCHED_CHANGEABLE || target_p->policy == SCHED_CHANGEABLE || target_p->policy != SCHED_OTHER || target_p->state == TASK_ZOMBIE) {
         return -EINVAL;
     }
 
-    enqueue_changeable_locked(target_p);
-    update_running_process();
     target_p->policy = SCHED_CHANGEABLE;
+    enqueue_changeable_locked(target_p);
+    if(current == target_p && is_changeable_locked(current)) {
+        update_running_process();
+    }
     return 0;
 }
 
@@ -62,9 +64,13 @@ int sys_get_policy(pid_t pid){
         return -ESRCH;
     }
 
-    if(target_p->policy != SCHED_CHANGEABLE) {
+    if(target_p->policy != SCHED_CHANGEABLE || target_p->state == TASK_ZOMBIE) {
         return -EINVAL;
     }
 
     return is_changeable_locked(target_p);
+}
+
+int sys_get_changeables_num(){
+    return get_changeables_num();
 }

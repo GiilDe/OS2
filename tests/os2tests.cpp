@@ -27,15 +27,20 @@ bool testChange() {
     change(1);
     for (int i = 0; i < 100; ++i) {
         if (CHILD_PROCESS(fork())) {
-            CHILD_ASSERT_TRUE(get_policy(getpid()));
+            CHILD_ASSERT_EQUALS(make_changeable(getpid()), 0);
+            //ASSERT_EQUALS(get_changeables_num(), i+1);
+            //CHILD_ASSERT_EQUALS(get_policy(getpid()), 1);
             CHILD_EXIT();
         }
     }
+
+    ASSERT_EQUALS(get_changeables_num(), 0);
 
     while (wait(NULL) > 0); // Wait for all children to finish
     // Policy should be turned off
     // TODO Fix
     ASSERT_EQUALS(make_changeable(getpid()), 0);
+    ASSERT_EQUALS(get_changeables_num(), 1);
     ASSERT_FALSE(get_policy(getpid()));
     return true;
 }
@@ -57,15 +62,18 @@ bool testIsChangeable() {
     }
 
     ASSERT_EQUALS(make_changeable(getpid()), 0);
+    ASSERT_EQUALS(get_changeables_num(), 1);
     ASSERT_TRUE(is_changeable(getpid()));
 
     pid = fork();
+    ASSERT_EQUALS(get_changeables_num(), 2);
     if(CHILD_PROCESS(pid)) {
         CHILD_ASSERT_TRUE(is_changeable(getpid()));
         CHILD_EXIT();
     } else {
         int code = 0;
         WAIT_CHILD(code);
+        ASSERT_EQUALS(get_changeables_num(), 1);
         // Child process does not exist anymore
         ASSERT_EQUALS(is_changeable(pid), -1);
         ASSERT_EQUALS(errno, ESRCH);
@@ -91,6 +99,7 @@ bool testMakeChangeable() {
         if(CHILD_PROCESS(pid)) {
             // First child
             CHILD_ASSERT_EQUALS(make_changeable(pid2), -1);
+            ASSERT_EQUALS(get_changeables_num(), 0);
             CHILD_ASSERT_EQUALS(errno, EINVAL); // First + Second child are CHANGEABLE
 
             // Before First Child finishes, change the Second Child to RR (Real time)
@@ -111,15 +120,19 @@ bool testMakeChangeable() {
             // First Child finished
             // Father == SC, Second Child == RR
             ASSERT_EQUALS(make_changeable(pid2), -1);
+            ASSERT_EQUALS(get_changeables_num(), 0);
             ASSERT_EQUALS(errno, EINVAL); // Can't change Real Time processes
 
             ASSERT_FALSE(is_changeable(getpid()));
             ASSERT_EQUALS(make_changeable(getpid()), 0); // Father should be OTHER now
+            ASSERT_EQUALS(get_changeables_num(), 1);
             ASSERT_TRUE(is_changeable(getpid()));
 
             ASSERT_EQUALS(make_changeable(-1), -1);
+            ASSERT_EQUALS(get_changeables_num(), 1);
             ASSERT_EQUALS(errno, ESRCH);
             ASSERT_EQUALS(make_changeable(65000), -1);
+            ASSERT_EQUALS(get_changeables_num(), 1);
             ASSERT_EQUALS(errno, ESRCH);
         }
     }
@@ -164,21 +177,27 @@ bool testChangeAndGetPolicy() {
 
 int main() {
     int p = fork();
+    ASSERT_EQUALS(get_changeables_num(), 0);
     int status = 0;
     if(CHILD_PROCESS(p)) {
         // Test change semantics separately
         RUN_TEST(testChange);
+        ASSERT_EQUALS(get_changeables_num(), 0);
         CHILD_EXIT();
     } else {
         waitpid(p, &status, 0);
         RUN_TEST(testIsChangeable);
+        ASSERT_EQUALS(get_changeables_num(), 0);
         RUN_TEST(testMakeChangeable);
+        ASSERT_EQUALS(get_changeables_num(), 0);
         RUN_TEST(testChangeAndGetPolicy);
+        ASSERT_EQUALS(get_changeables_num(), 0);
     }
 
     if(status == 0) {
         cout << GREEN << "[SUCCESS] Functional tests passed!" << NORMAL_TEXT << endl;
     }
+    ASSERT_EQUALS(get_changeables_num(), 0);
     return 0;
 
 }

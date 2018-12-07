@@ -67,4 +67,15 @@ int get_policy(pid_t pid) {
     return handle_res_code(res);
 }
 
+int get_changeables_num() {
+    int res;
+    __asm__(
+    "int $0x80;"
+    : "=a" (res)
+    : "0" (247)
+    : "memory"
+    );
+    return handle_res_code(res);
+}
+
 #endif //OS1_HW1_SYSCALLS_H

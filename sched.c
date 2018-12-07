@@ -174,6 +174,7 @@ static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
 # define finish_arch_switch(rq)		spin_unlock_irq(&(rq)->lock)
 #endif
 
+
 void set_is_changeable_enabled(int val){
     runqueue_t *rq = this_rq();
     rq->is_changeable_enabled = val;
@@ -182,6 +183,11 @@ void set_is_changeable_enabled(int val){
 void increment_changeables(){
     runqueue_t *rq = this_rq();
     rq->changeables->nr_active++;
+}
+
+void decrement_changeables(){
+    runqueue_t *rq = this_rq();
+    rq->changeables->nr_active--;
 }
 
 void set_is_changeable_enabled_locked(int val){
@@ -249,11 +255,9 @@ pid_t get_min_changeable() {
 }
 
 void update_running_process(){
-    if(current->policy == SCHED_CHANGEABLE) {
-        pid_t min_pid = get_min_changeable_locked();
-        if(min_pid < current->pid){
-            current->need_resched = 1;
-        }
+    pid_t min_pid = get_min_changeable_locked();
+    if (min_pid < current->pid) {
+        current->need_resched = 1;
     }
 }
 
@@ -369,6 +373,14 @@ void enqueue_changeable_locked(struct task_struct *p) {
     spin_unlock_irq(rq);
 }
 
+int get_changeables_num(){
+    runqueue_t* rq = this_rq();
+    spin_lock_irq(rq);
+    int x = rq->changeables->nr_active;
+    spin_unlock_irq(rq);
+    return x;
+}
+
 int is_changeables_empty_locked(){
     runqueue_t* rq = this_rq();
     spin_lock_irq(rq);
@@ -405,8 +417,9 @@ void dequeue_changeable_and_count_locked(struct task_struct *p)
 {
     runqueue_t* rq = this_rq();
     spin_lock_irq(rq);
-    if(does_changeables_include(p))
+    if(does_changeables_include(p)) {
         list_del(&p->changeable_list);
+    }
     rq->changeables->nr_active--;
     spin_unlock_irq(rq);
 }
@@ -414,8 +427,9 @@ void dequeue_changeable_and_count_locked(struct task_struct *p)
 void dequeue_changeable(struct task_struct *p)
 {
     runqueue_t* rq = this_rq();
-    if(does_changeables_include(p))
+    if(does_changeables_include(p)) {
         list_del(&p->changeable_list);
+    }
 }
 
 static inline int effective_prio(task_t *p)

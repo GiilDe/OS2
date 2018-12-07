@@ -176,6 +176,8 @@ int does_changeables_include(struct task_struct* target_p);
 void dequeue_changeable_and_count_locked(struct task_struct *p);
 void dequeue_changeable_and_count(struct task_struct *p);
 void increment_changeables();
+void decrement_changeables();
+int get_changeables_num();
 pid_t get_min_changeable_locked();
 void update_running_process();
 /**

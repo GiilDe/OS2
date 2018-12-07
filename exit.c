@@ -492,9 +492,9 @@ NORET_TYPE void do_exit(long code)
 	struct task_struct *tsk = current;
 
     //TODO
-    if(tsk->policy == SCHED_CHANGEABLE && does_changeables_include(tsk)) {
-        dequeue_changeable_and_count(tsk);
-        set_changeables_if_empty();
+    if(tsk->policy == SCHED_CHANGEABLE) {
+		dequeue_changeable_and_count_locked(tsk);
+		set_changeables_if_empty_locked();
     }
 
 	if (in_interrupt())
