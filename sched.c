@@ -359,11 +359,8 @@ void enqueue_changeable(struct task_struct *p) {
 }
 
 void enqueue_changeable_and_count(struct task_struct *p) {
-    runqueue_t* rq = this_rq();
-    if(p->state == TASK_RUNNING) {
-        list_add_tail(&p->changeable_list, rq->changeables->queue);
-    }
-    rq->changeables->nr_active++;
+    enqueue_changeable(p);
+    this_rq()->changeables->nr_active++;
 }
 
 void enqueue_changeable_and_count_locked(struct task_struct *p) {
@@ -389,20 +386,18 @@ int is_changeables_empty_locked(){
     return x == 0;
 }
 
+void set_changeables_if_empty() {
+    runqueue_t* rq = this_rq();
+    if(rq->changeables->nr_active == 0) {
+        set_is_changeable_enabled(0);
+    }
+}
+
 void set_changeables_if_empty_locked(){
     runqueue_t* rq = this_rq();
     spin_lock_irq(rq);
-    if(rq->changeables->nr_active == 0) {
-        set_is_changeable_enabled(0);
-    }
+    set_changeables_if_empty();
     spin_unlock_irq(rq);
-}
-
-void set_changeables_if_empty(){
-    runqueue_t* rq = this_rq();
-    if(rq->changeables->nr_active == 0) {
-        set_is_changeable_enabled(0);
-    }
 }
 
 void dequeue_changeable_and_count(struct task_struct *p)
@@ -417,10 +412,7 @@ void dequeue_changeable_and_count_locked(struct task_struct *p)
 {
     runqueue_t* rq = this_rq();
     spin_lock_irq(rq);
-    if(does_changeables_include(p)) {
-        list_del(&p->changeable_list);
-    }
-    rq->changeables->nr_active--;
+    dequeue_changeable_and_count(p);
     spin_unlock_irq(rq);
 }
 

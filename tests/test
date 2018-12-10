@@ -18,13 +18,17 @@ else
     exit 1
 fi
 
-g++ os2stress.cpp -o stress
-if [[ -f stress ]]; then
-    echo "Running sress tests"
-    ./stress
-    echo "Cleaning up..."
-    rm -f stress
+if [[ $* == *--no-stress* ]]; then
+    echo "Skipping stress tests"
 else
-    echo "[31mThere was an error compiling the code. See g++ output above[0m"
-    exit 1
+    g++ os2stress.cpp -o stress
+    if [[ -f stress ]]; then
+        echo "Running sress tests"
+        ./stress
+        echo "Cleaning up..."
+        rm -f stress
+    else
+        echo "[31mThere was an error compiling the code. See g++ output above[0m"
+        exit 1
+    fi
 fi

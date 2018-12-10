@@ -153,6 +153,17 @@ using std::exception;
         return -1; \
     }
 
+#define RUN_TEST_ISOLATE(t, stat_variable) \
+    do { \
+        if(CHILD_PROCESS(fork())) { \
+            RUN_TEST(t); \
+            CHILD_EXIT(); \
+        } else { \
+            wait(&stat_variable); \
+        } \
+    } while (0);
+
+
 #define CHILD_PROCESS(pid) \
     (pid == 0)
 
